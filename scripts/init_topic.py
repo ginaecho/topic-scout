@@ -4,11 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import json
+import os
 import re
+import sys
 from datetime import date
-from pathlib import Path
 
+from intent_refiner import IntentRefinementError, refine_intent
 from workspace import DATA_DIR, PAPERS_PATH, ROOT, TOPIC_CONFIG, write_json
 
 
@@ -49,6 +50,7 @@ def render_agents(config: dict) -> str:
 
 Maintain a living research intelligence workspace for **{config['topic']}**.
 
+Research question: {config['research_question']}
 Goal: {config['goal']}
 Audience: {config['audience']}
 
@@ -59,6 +61,7 @@ Audience: {config['audience']}
 - Publication window: {config['years']['from']}-{config['years']['to']}
 - Evidence types: {", ".join(config['evidence_types'])}
 - Taxonomy: {", ".join(config['taxonomy'])}
+- Dashboard sections: {", ".join(config['dashboard_sections'])}
 - Human approval required: {str(config['approval_required']).lower()}
 
 ## Roles
@@ -84,6 +87,7 @@ Audience: {config['audience']}
 
 
 def render_scout_skill(config: dict) -> str:
+    strategy = "\n".join(f"- {item}" for item in config["scouting_strategy"])
     return f"""---
 name: topic-paper-scout
 description: Scout, review, and ingest papers for {config['topic']}. Use for scheduled scouting, manual paper discovery, citation-graph expansion, and corpus updates in this workspace.
@@ -101,6 +105,10 @@ description: Scout, review, and ingest papers for {config['topic']}. Use for sch
 
 Search within {config['years']['from']}-{config['years']['to']}.
 Prioritize: {", ".join(config['evidence_types'])}.
+
+## Topic-Specific Scouting Strategy
+
+{strategy}
 """
 
 
@@ -152,6 +160,7 @@ def render_role(role: str, objective: str, config: dict) -> str:
 ## Topic Contract
 
 - Topic: {config['topic']}
+- Research question: {config['research_question']}
 - Goal: {config['goal']}
 - Include: {", ".join(config['include'])}
 - Exclude: {", ".join(config['exclude']) or "none"}
@@ -168,6 +177,7 @@ def render_role(role: str, objective: str, config: dict) -> str:
 
 
 def render_scout_prompt(config: dict) -> str:
+    strategy = "\n".join(f"   - {item}" for item in config["scouting_strategy"])
     return f"""AI Topic Scout scheduled run for: {config['topic']}
 
 1. Read `AGENTS.md`, `topic.json`, and `skills/topic-paper-scout/SKILL.md`.
@@ -185,6 +195,9 @@ def render_scout_prompt(config: dict) -> str:
    - run `make dashboard`;
    - commit and report only the accepted additions.
 9. If no paper is accepted, do not rewrite tracked artifacts and return no update.
+
+Topic-specific strategy:
+{strategy}
 """
 
 
@@ -212,6 +225,7 @@ def initialize(config: dict) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--intent", help="Raw user intent; preferred over using --topic as a prompt")
     parser.add_argument("--topic")
     parser.add_argument("--goal")
     parser.add_argument("--audience")
@@ -222,44 +236,136 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--taxonomy")
     parser.add_argument("--cadence", default="weekly")
     parser.add_argument("--auto-approve", action="store_true")
+    parser.add_argument("--offline", action="store_true", help="Skip LLM intent refinement")
+    parser.add_argument(
+        "--provider",
+        choices=["codex", "api"],
+        default=os.environ.get("TOPIC_SCOUT_PROVIDER", "codex"),
+        help="Intent refinement provider (default: codex)",
+    )
+    parser.add_argument("--model", help="Model override for the selected provider")
     return parser.parse_args()
+
+
+def offline_contract(
+    topic: str,
+    goal: str,
+    audience: str,
+    include: list[str],
+    exclude: list[str],
+    evidence_types: list[str],
+    taxonomy: list[str],
+) -> dict:
+    return {
+        "title": topic,
+        "research_question": topic,
+        "goal": goal,
+        "audience": audience,
+        "include": include,
+        "exclude": exclude,
+        "evidence_types": evidence_types,
+        "taxonomy": taxonomy,
+        "dashboard_sections": ["overview", *taxonomy[:6], "research opportunities"],
+        "search_queries": build_queries(topic, include, evidence_types),
+        "scouting_strategy": [
+            "Run direct keyword and benchmark searches.",
+            "Expand accepted seeds through references, related works, and citing works.",
+            "Use exclusion and adversarial queries to test relevance boundaries.",
+        ],
+    }
 
 
 def main() -> int:
     args = parse_args()
-    topic = args.topic or ask("What topic or research question do you want to explore?")
-    goal = args.goal or ask("What decision or outcome should this research support?")
-    audience = args.audience or ask("Who will use the results?", "researchers")
-    include_text = args.include or ask("Concepts that must be included (comma-separated)")
-    exclude_text = args.exclude or ask("Adjacent areas to exclude (comma-separated)", "")
-    years_text = args.years or ask("Publication years", f"{date.today().year - 3}-{date.today().year}")
-    evidence_text = args.evidence if args.topic else ask(
-        "Evidence types (comma-separated)", args.evidence
+    scripted = bool(args.intent or args.topic)
+    raw_intent = args.intent or args.topic or ask(
+        "Describe the research intent, business purpose, constraints, and questions"
     )
-    taxonomy_text = args.taxonomy or ask(
-        "How should papers be grouped (comma-separated)?",
-        "methods,benchmarks,systems,surveys,applications",
+    if args.offline:
+        goal = args.goal or (
+            raw_intent if scripted else ask("What decision or outcome should this research support?")
+        )
+        audience = args.audience or (
+            "researchers" if scripted else ask("Who will use the results?", "researchers")
+        )
+        include_text = args.include or (
+            "" if scripted else ask("Concepts that must be included (comma-separated)")
+        )
+        exclude_text = args.exclude if scripted else ask(
+            "Adjacent areas to exclude (comma-separated)", args.exclude
+        )
+        taxonomy_text = args.taxonomy or (
+            "methods,benchmarks,systems,surveys,applications"
+            if scripted
+            else ask(
+                "How should papers be grouped (comma-separated)?",
+                "methods,benchmarks,systems,surveys,applications",
+            )
+        )
+        include = split_list(include_text)
+        exclude = split_list(exclude_text)
+        evidence_types = split_list(args.evidence)
+        taxonomy = split_list(taxonomy_text)
+        refined = offline_contract(
+            raw_intent, goal, audience, include, exclude, evidence_types, taxonomy
+        )
+        refinement_model = None
+    else:
+        context = {
+            key: value
+            for key, value in {
+                "goal": args.goal,
+                "audience": args.audience,
+                "include": split_list(args.include or ""),
+                "exclude": split_list(args.exclude),
+                "evidence_types": split_list(args.evidence),
+                "taxonomy": split_list(args.taxonomy or ""),
+            }.items()
+            if value
+        }
+        print(f"Refining research intent with {args.provider}...", file=sys.stderr)
+        try:
+            refined, refinement_model = refine_intent(
+                raw_intent,
+                provider=args.provider,
+                context=context,
+                model=args.model,
+                cwd=ROOT,
+            )
+        except IntentRefinementError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+
+    years_text = args.years or (
+        f"{date.today().year - 3}-{date.today().year}"
+        if scripted
+        else ask("Publication years", f"{date.today().year - 3}-{date.today().year}")
     )
-    cadence = args.cadence if args.topic else ask("Scout cadence", args.cadence)
+    cadence = args.cadence if scripted else ask("Scout cadence", args.cadence)
     approval = not args.auto_approve
-    if not args.topic:
+    if not scripted:
         approval = ask("Require human approval before ingestion?", "yes").lower() not in {"no", "n"}
 
-    include = split_list(include_text)
-    evidence_types = split_list(evidence_text)
+    topic = refined["title"].strip()
     config = {
         "slug": slugify(topic),
         "topic": topic,
-        "goal": goal,
-        "audience": audience,
-        "include": include,
-        "exclude": split_list(exclude_text),
+        "raw_intent": raw_intent,
+        "research_question": refined["research_question"],
+        "goal": refined["goal"],
+        "audience": refined["audience"],
+        "include": refined["include"],
+        "exclude": refined["exclude"],
         "years": parse_years(years_text),
-        "evidence_types": evidence_types,
-        "taxonomy": split_list(taxonomy_text),
+        "evidence_types": refined["evidence_types"],
+        "taxonomy": refined["taxonomy"],
+        "dashboard_sections": refined["dashboard_sections"],
         "cadence": cadence,
         "approval_required": approval,
-        "search_queries": build_queries(topic, include, evidence_types),
+        "search_queries": refined["search_queries"],
+        "scouting_strategy": refined["scouting_strategy"],
+        "intent_refinement_provider": "offline" if args.offline else args.provider,
+        "intent_refinement_model": refinement_model,
         "created_at": date.today().isoformat(),
     }
     initialize(config)

@@ -1,4 +1,17 @@
 __pycache__/
 *.pyc
 .DS_Store
-data/candidates.json
+
+# Generated topic workspace
+/AGENTS.md
+/agents/
+/topic.json
+/topic-dashboard.html
+/scout_cron_payload.txt
+/skills/topic-paper-scout/
+/skills/analyze-research-gaps/
+
+# Generated scouting, corpus, analysis, and orchestration artifacts
+/data/*
+!/data/*.example.json
+/reports/
