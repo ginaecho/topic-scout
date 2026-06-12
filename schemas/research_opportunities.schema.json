@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Topic Scout Research Opportunities",
+  "type": "object",
+  "required": ["generated_at", "analysis_model", "summary", "opportunities"],
+  "properties": {
+    "generated_at": {"type": "string"},
+    "analysis_model": {"type": "string"},
+    "summary": {"type": "string"},
+    "opportunities": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "rank", "title", "gap_type", "priority_score", "confidence", "scope",
+          "evidence", "llm_reasoning", "uncertainty", "coverage_check",
+          "research_questions", "scout_queries"
+        ],
+        "properties": {
+          "evidence": {"type": "array", "minItems": 2},
+          "coverage_check": {
+            "type": "object",
+            "required": ["query_terms", "matched_titles", "interpretation"]
+          }
+        }
+      }
+    }
+  }
+}

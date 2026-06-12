@@ -1,0 +1,39 @@
+{
+  "slug": "ai-theorem-proving",
+  "topic": "AI for theorem proving",
+  "goal": "Track methods that improve formal proof search and verification",
+  "audience": "research engineers",
+  "include": [
+    "formal theorem proving",
+    "proof search",
+    "verifier-guided generation"
+  ],
+  "exclude": [
+    "informal math tutoring"
+  ],
+  "years": {
+    "from": 2023,
+    "to": 2026
+  },
+  "evidence_types": [
+    "methods",
+    "benchmarks",
+    "systems",
+    "surveys"
+  ],
+  "taxonomy": [
+    "proof generation",
+    "proof search",
+    "verification",
+    "benchmarks",
+    "systems"
+  ],
+  "cadence": "weekly",
+  "approval_required": true,
+  "search_queries": [
+    "AI formal theorem proving proof search",
+    "LLM verifier guided proof generation",
+    "neural theorem proving benchmark"
+  ],
+  "created_at": "2026-06-12"
+}
