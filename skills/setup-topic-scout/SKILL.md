@@ -5,20 +5,30 @@ description: Interview a user about a research topic and initialize AI Topic Sco
 
 # Setup Topic Scout
 
-Ask the user concise questions about:
+At the beginning of setup, collect the user's raw intent and initialize the LLM refinement step.
+Do not use a sentence-length intent directly as the topic title.
+
+Ask the user for one complete intent that covers, where known:
 
 1. topic or research question;
-2. decision or outcome;
-3. audience;
-4. required concepts;
-5. excluded adjacent areas;
-6. publication years;
-7. evidence types;
-8. taxonomy;
-9. cadence;
-10. approval policy.
+2. business decision or outcome;
+3. audience and domain or policy constraints;
+4. evaluation concerns and agent-system design concerns.
 
-Then run `python3 scripts/init_topic.py` with explicit flags or interactively.
+Then run `python3 scripts/init_topic.py --intent "..."` with explicit flags or interactively.
+Pass additional known answers as optional constraints; do not delay refinement to conduct a full
+manual taxonomy interview.
+Normal setup uses `codex exec` and the Codex CLI's saved ChatGPT subscription login. If Codex is
+not authenticated, run `codex login`. Use `--provider api` only when direct API usage is requested,
+and use `--offline` only when deterministic initialization without LLM refinement is requested.
+
+The refined contract must contain:
+
+- a concise title and explicit research question;
+- business purpose, domain constraints, and policy requirements;
+- evaluation dimensions and agent-system design concerns;
+- dashboard sections, taxonomy, and evidence types;
+- direct, adversarial, and citation-graph scouting queries and strategy.
 
 Verify that initialization creates:
 

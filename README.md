@@ -15,23 +15,62 @@ skill instructions, searches scholarly graphs, maintains a deduplicated paper co
 ## Quick Start
 
 ```bash
+codex login
 make init
 make scout
 make review
 make dashboard
 ```
 
+By default, `make init` calls the installed Codex CLI in non-interactive mode and reuses its saved
+ChatGPT login. This uses Codex subscription access and does not require an OpenAI API key. The
+Codex agent runs ephemerally in a read-only sandbox and returns schema-constrained JSON.
+
+During intake, it converts the user's raw intent into a concise title, research question, dashboard
+structure, targeted search queries, and a topic-specific scouting strategy before generating any
+agent or skill Markdown.
+
 Or initialize non-interactively:
 
 ```bash
 python3 scripts/init_topic.py \
-  --topic "AI for theorem proving" \
+  --intent "Evaluate AI agents for theorem proving, including proof correctness, verifier feedback, and practical research-engineering value" \
   --goal "Track methods that improve formal proof search and verification" \
   --audience "research engineers" \
   --include "formal theorem proving, proof search, verifier-guided generation" \
   --exclude "informal math tutoring" \
-  --years "2023-2026"
+  --years "2023-2026" \
+  --taxonomy "proof generation,proof search,verification,benchmarks,systems"
 ```
+
+Provider options:
+
+```bash
+# Default: use the logged-in Codex CLI and ChatGPT/Codex subscription
+make init
+
+# Direct Responses API usage and API billing
+export OPENAI_API_KEY="..."
+python3 scripts/init_topic.py --provider api
+
+# No model call
+python3 scripts/init_topic.py --offline
+```
+
+Set `TOPIC_SCOUT_PROVIDER=api` to change the default provider. Pass `--model` to override the
+selected provider's configured model. Offline mode preserves literal-input behavior.
+
+To discard a generated topic workspace and restart intake:
+
+```bash
+make reset
+make init
+```
+
+`make reset` removes only generated topic files, agent roles, topic-specific skills, corpus state,
+scout candidates, reports, task manifests, and dashboard output. These generated paths are also
+excluded by `.gitignore`, while application source, examples, schemas, and the setup skill remain
+trackable.
 
 Then inspect:
 
@@ -44,22 +83,22 @@ Then inspect:
 - `topic-dashboard.html`: dashboard, graph, wiki, and opportunities
 - `scout_cron_payload.txt`: generated prompt for a scheduled Claw scout
 
-## Topic Interview
+## Intent Intake
 
-`make init` asks:
+`make init` asks for one complete research intent. Immediately after that input, the LLM derives:
 
-1. What topic or question do you want to explore?
-2. What decision or outcome should this research support?
-3. Who will use the results?
-4. What concepts must be included?
-5. What adjacent areas should be excluded?
-6. What publication years matter?
-7. Which evidence types matter: methods, benchmarks, surveys, systems, products?
-8. How should papers be grouped?
-9. How often should scouting run?
-10. Should updates require human approval before entering the corpus?
+- a concise title and research question;
+- business purpose, audience, and scope boundaries;
+- evaluation dimensions, evidence types, and taxonomy;
+- dashboard sections;
+- targeted and adversarial search queries;
+- a citation-graph scouting strategy.
 
-The answers become version-controlled instructions rather than disappearing into chat history.
+Interactive setup then asks only for publication years, cadence, and approval policy. Non-interactive
+flags such as `--goal`, `--include`, and `--taxonomy` are optional constraints on the LLM.
+
+The refined contract and original `raw_intent` become version-controlled instructions rather than
+disappearing into chat history.
 
 ## Agent Modes
 
@@ -111,6 +150,7 @@ make dashboard
 ```bash
 make help
 make init
+make reset
 make scout
 make corpus
 make dashboard

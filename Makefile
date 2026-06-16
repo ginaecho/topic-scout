@@ -1,11 +1,12 @@
 PYTHON ?= python3
 QUERY ?=
 
-.PHONY: help init scout review corpus dashboard plan opportunities-check test
+.PHONY: help init reset scout review corpus dashboard plan opportunities-check test
 
 help:
 	@printf "%s\n" \
-	"  make init       Interview the user and generate a topic workspace" \
+	"  make init       Use Codex CLI to refine intent and generate a topic workspace" \
+	"  make reset      Remove the generated topic workspace for a fresh start" \
 	"  make scout      Search scholarly graphs for candidate papers" \
 	"  make review     Print the candidate review queue" \
 	"  make corpus     Rebuild Markdown paper notes and report" \
@@ -16,6 +17,13 @@ help:
 
 init:
 	$(PYTHON) scripts/init_topic.py
+
+reset:
+	rm -rf AGENTS.md agents data/candidates.json data/dashboard.json \
+		data/papers.json data/research_opportunities.json \
+		data/sequential_tasks.json data/claw_tasks.json data/swarm_tasks.json \
+		reports scout_cron_payload.txt skills/analyze-research-gaps \
+		skills/topic-paper-scout topic-dashboard.html topic.json
 
 scout:
 	$(PYTHON) scripts/scout.py $(if $(QUERY),--query "$(QUERY)",)
