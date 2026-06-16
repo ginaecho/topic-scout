@@ -171,6 +171,7 @@ class CoreTests(unittest.TestCase):
             "raw sentence",
             cwd=ROOT,
             run=fake_run,
+            which=lambda _: "codex",
         )
         self.assertEqual(result["title"], refined["title"])
         self.assertEqual(model, "codex-cli:configured-model")
