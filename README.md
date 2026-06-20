@@ -1,17 +1,15 @@
 # AI Topic Scout
 
-Turn any research question into a persistent, agent-operated paper intelligence workspace.
+AI Topic Scout is a reusable research-workspace generator.
 
-AI Topic Scout asks the user what they want to investigate, generates topic-specific agent and
-skill instructions, searches scholarly graphs, maintains a deduplicated paper corpus, and builds:
+Given a raw topic intent, it creates a topic-specific workspace with:
 
-- Markdown paper notes and synthesis reports
-- topic ratios and scout-run trends
-- an interactive paper association graph
-- a searchable Karpathy-style wiki
-- evidence-backed research gaps and opportunities
-- scout token and spend reporting
-- task manifests for one agent, Claw agents, or subagent swarms
+- a research contract in `topic.json`
+- generated roles and skills for scouting and analysis
+- OpenAlex-based candidate discovery plus LLM-backed ranking
+- accepted-paper notes and a synthesis report
+- a dashboard with graph, wiki, trends, cost tracking, and opportunities
+- task manifests for sequential runs, Claw-style coordination, and swarm execution
 
 ## Quick Start
 
@@ -19,19 +17,65 @@ skill instructions, searches scholarly graphs, maintains a deduplicated paper co
 codex login
 make init
 make scout
-make review
+make corpus
+make opportunities
 make dashboard
 ```
 
-By default, `make init` calls the installed Codex CLI in non-interactive mode and reuses its saved
-ChatGPT login. This uses Codex subscription access and does not require an OpenAI API key. The
-Codex agent runs ephemerally in a read-only sandbox and returns schema-constrained JSON.
+`make scout` defaults to:
 
-During intake, it converts the user's raw intent into a concise title, research question, dashboard
-structure, targeted search queries, and a topic-specific scouting strategy before generating any
-agent or skill Markdown.
+- OpenAlex retrieval for candidate discovery
+- model-backed candidate scoring for ranking and token accounting
 
-Or initialize non-interactively:
+When `approval_required` is `false`, `make scout` auto-accepts new papers with
+`relevance_score >= 7.0` by default. Override that with:
+
+```bash
+python3 scripts/scout.py --accept-score 8.0
+```
+
+Use `python3 scripts/scout.py --offline` only when you explicitly want the legacy OpenAlex-only
+path with zero token usage.
+
+## Tool Surface
+
+Core commands:
+
+```bash
+make help
+make init
+make reset
+make scout
+make review
+make corpus
+make opportunities
+make dashboard
+make plan
+make test
+```
+
+Generated workspace artifacts appear at the repository root:
+
+- `topic.json`
+- `AGENTS.md`
+- `agents/*.md`
+- `skills/topic-paper-scout/SKILL.md`
+- `skills/analyze-research-gaps/SKILL.md`
+- `data/papers.json`
+- `reports/research_report.md`
+- `data/research_opportunities.json`
+- `topic-dashboard.html`
+- `scout_cron_payload.txt`
+
+`make reset` removes only those generated workspace artifacts. Application source, schemas, and
+tracked examples remain intact.
+
+## Initialization
+
+By default, `make init` uses the logged-in Codex CLI and subscription access. That does not require
+an OpenAI API key.
+
+Non-interactive setup:
 
 ```bash
 python3 scripts/init_topic.py \
@@ -47,118 +91,67 @@ python3 scripts/init_topic.py \
 Provider options:
 
 ```bash
-# Default: use the logged-in Codex CLI and ChatGPT/Codex subscription
+# Default: Codex CLI
 make init
 
-# Direct Responses API usage and API billing
+# Direct Responses API usage
 export OPENAI_API_KEY="..."
 python3 scripts/init_topic.py --provider api
 
-# No model call
+# No model call during topic setup
 python3 scripts/init_topic.py --offline
 ```
 
-Set `TOPIC_SCOUT_PROVIDER=api` to change the default provider. Pass `--model` to override the
-selected provider's configured model. Offline mode preserves literal-input behavior.
+## Claw And Swarm
 
-To discard a generated topic workspace and restart intake:
-
-```bash
-make reset
-make init
-```
-
-`make reset` removes only generated topic files, agent roles, topic-specific skills, corpus state,
-scout candidates, reports, task manifests, and dashboard output. These generated paths are also
-excluded by `.gitignore`, while application source, examples, schemas, and the setup skill remain
-trackable.
-
-Then inspect:
-
-- `topic.json`: the research contract
-- `AGENTS.md`: generated operating instructions
-- `skills/topic-paper-scout/SKILL.md`: generated scout procedure
-- `skills/analyze-research-gaps/SKILL.md`: generated opportunity-analysis procedure
-- `data/papers.json`: normalized scholarly corpus
-- `reports/research_report.md`: generated synthesis
-- `topic-dashboard.html`: dashboard, graph, wiki, candidate queue, opportunities, and scout cost totals
-- `scout_cron_payload.txt`: generated prompt for a scheduled Claw scout
-
-## Intent Intake
-
-`make init` asks for one complete research intent. Immediately after that input, the LLM derives:
-
-- a concise title and research question;
-- business purpose, audience, and scope boundaries;
-- evaluation dimensions, evidence types, and taxonomy;
-- dashboard sections;
-- targeted and adversarial search queries;
-- a citation-graph scouting strategy.
-- a token and money cost record for each scout run.
-- a token and money cost record for each scout run.
-
-Interactive setup then asks only for publication years, cadence, and approval policy. Non-interactive
-flags such as `--goal`, `--include`, and `--taxonomy` are optional constraints on the LLM.
-
-The refined contract and original `raw_intent` become version-controlled instructions rather than
-disappearing into chat history.
-
-## Agent Modes
+The repo can emit task manifests for both Claw-style multi-agent coordination and swarm execution.
 
 ```bash
-# Show the generated task plan
+# Show the generated plan
 python3 scripts/orchestrate.py plan
 
-# Run deterministic local stages
+# Deterministic local execution
 python3 scripts/orchestrate.py run --mode sequential
 
-# Emit task briefs for a Claw coordinator and workers
+# Emit a Claw-oriented task manifest
 python3 scripts/orchestrate.py emit --mode claw
 
-# Emit independent subagent tasks and a synthesis task
+# Emit a swarm-oriented task manifest
 python3 scripts/orchestrate.py emit --mode swarm
 ```
 
-Roles:
+These manifests are written into `data/` as:
 
-- `coordinator`: owns the research contract and final acceptance
-- `query_designer`: expands the topic into targeted searches
-- `graph_scout`: searches scholarly graphs and citation neighborhoods
-- `relevance_reviewer`: applies inclusion/exclusion criteria
-- `librarian`: deduplicates and writes paper records
-- `analyst`: maintains taxonomy, trends, and synthesis
-- `gap_analyst`: produces evidence-backed opportunities
-- `publisher`: regenerates Markdown and HTML artifacts
+- `data/sequential_tasks.json`
+- `data/claw_tasks.json`
+- `data/swarm_tasks.json`
 
-## Scout Semantics
+## Review Flow
 
-- Candidate discovery does not automatically imply acceptance.
-- Every accepted paper must have a stable scholarly identifier and source URL.
-- Existing records are compared before writeback.
-- If no accepted new paper exists, tracked artifacts are not rewritten.
-- Research-gap conclusions are LLM hypotheses over the current corpus and must include evidence,
-  uncertainty, and targeted follow-up queries.
-
-Review and accept candidates:
+If you require explicit paper approval:
 
 ```bash
 make review
 python3 scripts/accept_candidates.py openalex:W123 openalex:W456
 make corpus
+make opportunities
 make dashboard
 ```
 
-## Commands
+## Examples
 
-```bash
-make help
-make init
-make reset
-make scout
-make corpus
-make dashboard
-make plan
-make test
-```
+Tracked example outputs live under `examples/ai-in-hiring-processes/`.
 
-No Python package installation is required for the core workflow.
+That example includes:
+
+- a generated topic workspace
+- accepted papers and report outputs
+- opportunity analysis output
+- generated dashboard artifacts
+- example `claw`, `swarm`, and `sequential` task manifests
+
+## Notes
+
+- Candidate discovery does not imply acceptance unless approval is disabled and the score threshold is met.
+- Research-gap conclusions are LLM-generated hypotheses over the current accepted corpus.
+- The repo is designed to be reused for any topic, not to preserve one live topic run at the root.

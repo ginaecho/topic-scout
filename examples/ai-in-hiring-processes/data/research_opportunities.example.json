@@ -1,0 +1,70 @@
+{
+  "generated_at": "YYYY-MM-DD",
+  "analysis_model": "agent/model",
+  "summary": "Evidence-backed summary of the largest missing areas.",
+  "opportunities": [
+    {
+      "rank": 1,
+      "title": "Specific corpus opportunity",
+      "gap_type": "corpus_gap",
+      "priority_score": 90,
+      "confidence": "medium",
+      "scope": "What is missing.",
+      "evidence": [
+        {"observation": "Observed corpus fact.", "source": "data/papers.json"},
+        {"observation": "Observed graph or report fact.", "source": "data/dashboard.json"}
+      ],
+      "llm_reasoning": "Inference from the cited evidence.",
+      "uncertainty": "What may make the inference incomplete.",
+      "coverage_check": {
+        "query_terms": ["term one"],
+        "matched_titles": [],
+        "interpretation": "A bounded corpus claim, not a field-wide absence claim."
+      },
+      "research_questions": ["Question one?", "Question two?"],
+      "scout_queries": ["targeted query one", "targeted query two"]
+    },
+    {
+      "rank": 2,
+      "title": "Specific evidence opportunity",
+      "gap_type": "evidence_gap",
+      "priority_score": 80,
+      "confidence": "medium",
+      "scope": "What evidence is weak.",
+      "evidence": [
+        {"observation": "Observed corpus fact.", "source": "data/papers.json"},
+        {"observation": "Observed report fact.", "source": "reports/research_report.md"}
+      ],
+      "llm_reasoning": "Inference from the cited evidence.",
+      "uncertainty": "Possible missing evidence.",
+      "coverage_check": {
+        "query_terms": ["term two"],
+        "matched_titles": ["Example title"],
+        "interpretation": "The corpus has proposals but limited validation."
+      },
+      "research_questions": ["Question one?", "Question two?"],
+      "scout_queries": ["targeted query one", "targeted query two"]
+    },
+    {
+      "rank": 3,
+      "title": "Specific translation opportunity",
+      "gap_type": "translation_gap",
+      "priority_score": 70,
+      "confidence": "low",
+      "scope": "What is not operationalized.",
+      "evidence": [
+        {"observation": "Observed corpus fact.", "source": "data/papers.json"},
+        {"observation": "Observed workflow fact.", "source": "AGENTS.md"}
+      ],
+      "llm_reasoning": "Inference from the cited evidence.",
+      "uncertainty": "Possible external tools not represented.",
+      "coverage_check": {
+        "query_terms": ["term three"],
+        "matched_titles": ["Example title"],
+        "interpretation": "The corpus shows research but not a maintained implementation."
+      },
+      "research_questions": ["Question one?", "Question two?"],
+      "scout_queries": ["targeted query one", "targeted query two"]
+    }
+  ]
+}

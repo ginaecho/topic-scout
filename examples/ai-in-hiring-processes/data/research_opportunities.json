@@ -1,0 +1,312 @@
+{
+  "generated_at": "2026-06-20T10:46:15.552006+00:00",
+  "analysis_model": "codex-cli:configured-model",
+  "summary": "The accepted corpus supports bounded opportunities in human\u2013AI decision workflows, predictive validity, operational value, accessibility, and governance. These are corpus gaps, evidence gaps, or translation gaps\u2014not claims of field-wide absence. One accepted record (\u201cFormal proof search\u201d) appears unrelated to hiring and weakens corpus reliability.",
+  "opportunities": [
+    {
+      "rank": 1,
+      "title": "Human\u2013AI decision workflows, overrides, and accountability",
+      "gap_type": "evidence_gap",
+      "priority_score": 95,
+      "confidence": "high",
+      "scope": "Empirical studies of recruiter or hiring-manager interaction with AI recommendations, including reliance, overrides, escalation, accountability, and resulting hiring outcomes.",
+      "evidence": [
+        {
+          "observation": "The corpus shape reports zero coverage for decision roles and risk mechanisms.",
+          "source": "Report excerpt: Corpus Shape"
+        },
+        {
+          "observation": "The algorithmic inclusion paper explicitly states that evidence is lacking on human\u2013machine interaction in hiring decisions and effective auditing.",
+          "source": "openalex:W4366989571"
+        },
+        {
+          "observation": "The Thailand study measures intention to adopt AI but does not report observed decision behavior or hiring outcomes.",
+          "source": "openalex:W4390880618"
+        }
+      ],
+      "llm_reasoning": "The corpus discusses collaboration, adoption, and oversight conceptually, but provides no accepted empirical study of how recruiters use, reject, or defer to AI recommendations. This is a bounded evidence gap within the accepted corpus.",
+      "uncertainty": "Relevant empirical studies may exist among rejected candidates or outside the current search/index coverage. The available abstracts may also omit workflow details present in full texts.",
+      "coverage_check": {
+        "query_terms": [
+          "human AI hiring override behavior",
+          "recruiter reliance algorithmic recommendations",
+          "automation bias recruitment field experiment",
+          "hiring escalation accountability AI"
+        ],
+        "matched_titles": [
+          "Algorithmic inclusion: Shaping the predictive algorithms of artificial intelligence in hiring",
+          "A UTAUT-Based Framework for Analyzing Users\u2019 Intention to Adopt Artificial Intelligence in Human Resource Recruitment: A Case Study of Thailand",
+          "Ethics and discrimination in artificial intelligence-enabled recruitment practices"
+        ],
+        "interpretation": "Matched papers motivate human oversight or adoption, but the supplied evidence does not establish observed override behavior, automation bias, or accountability outcomes."
+      },
+      "research_questions": [
+        "How often do recruiters override AI recommendations, and under what conditions?",
+        "How do explanations, confidence scores, and review requirements affect reliance and decision quality?",
+        "Who is accountable when human and algorithmic recommendations conflict?",
+        "Do human-review controls reduce adverse impact without eliminating efficiency gains?"
+      ],
+      "scout_queries": [
+        "(\"algorithmic hiring\" OR \"AI recruitment\") recruiter override reliance experiment",
+        "(\"automation bias\" OR algorithm aversion) hiring recruitment selection",
+        "human-in-the-loop hiring decision support field study accountability",
+        "AI hiring recommendation disagreement escalation recruiter"
+      ]
+    },
+    {
+      "rank": 2,
+      "title": "Predictive validity and generalization across jobs and populations",
+      "gap_type": "evidence_gap",
+      "priority_score": 92,
+      "confidence": "high",
+      "scope": "Independent, job-related validation of AI screening and assessment systems across occupations, applicant populations, locations, and time periods.",
+      "evidence": [
+        {
+          "observation": "The chatbot study reports validity for some personality traits but not others, and reports no significant prediction of real-world outcomes.",
+          "source": "openalex:W4409825334"
+        },
+        {
+          "observation": "The chatbot sample contains 159 candidates and professionals from Serbian and Montenegrin regions.",
+          "source": "openalex:W4409825334"
+        },
+        {
+          "observation": "The remaining accepted papers primarily address fairness, adoption, ethics, or inclusion rather than criterion-related prediction of job performance or hiring success.",
+          "source": "Accepted-paper corpus"
+        }
+      ],
+      "llm_reasoning": "The only accepted paper supplying direct predictive-validity evidence reports weak external validity in a geographically bounded sample. The corpus therefore cannot support general claims about quality-of-hire or generalization.",
+      "uncertainty": "Full texts of other accepted papers may contain limited validation evidence not visible in the abstracts. Relevant validation studies may also use product-specific terminology absent from current queries.",
+      "coverage_check": {
+        "query_terms": [
+          "predictive validity AI hiring",
+          "criterion validity algorithmic assessment",
+          "quality of hire AI longitudinal",
+          "generalization across jobs populations"
+        ],
+        "matched_titles": [
+          "Comparing chatbots to psychometric tests in hiring: reduced social desirability bias, but lower predictive validity"
+        ],
+        "interpretation": "Only one supplied match directly evaluates predictive validity, and its results are mixed and context-specific."
+      },
+      "research_questions": [
+        "Which AI-derived hiring scores predict job performance, retention, or training outcomes beyond established assessments?",
+        "How stable are validity coefficients across occupations, languages, applicant groups, and labor markets?",
+        "How do model updates and distribution shifts affect criterion validity over time?",
+        "What sample sizes and validation designs are required for credible deployment decisions?"
+      ],
+      "scout_queries": [
+        "(\"AI hiring\" OR \"algorithmic selection\") \"criterion-related validity\"",
+        "(\"machine learning\" recruitment assessment) predictive validity job performance",
+        "AI hiring longitudinal \"quality of hire\" validation",
+        "algorithmic assessment cross-validation occupation population generalization"
+      ]
+    },
+    {
+      "rank": 3,
+      "title": "Measured operational value and quality trade-offs",
+      "gap_type": "evidence_gap",
+      "priority_score": 89,
+      "confidence": "high",
+      "scope": "Field experiments or longitudinal evaluations measuring time-to-hire, cost-per-hire, recruiter workload, conversion, quality-of-hire, and fairness jointly.",
+      "evidence": [
+        {
+          "observation": "The topic contract identifies time-to-hire, cost-per-hire, recruiter workload, conversion, and quality-of-hire as dashboard metrics.",
+          "source": "Topic contract"
+        },
+        {
+          "observation": "The ethics paper states that AI may increase efficiency and reduce transactional work, but the supplied abstract does not provide quantified operational outcomes.",
+          "source": "openalex:W4386714740"
+        },
+        {
+          "observation": "The Thailand paper studies perceived value and adoption intention rather than realized business metrics.",
+          "source": "openalex:W4390880618"
+        },
+        {
+          "observation": "The corpus shape reports only one paper under evaluation dimensions.",
+          "source": "Report excerpt: Corpus Shape"
+        }
+      ],
+      "llm_reasoning": "Operational benefits are asserted or perceived in the accepted corpus, but the supplied evidence does not quantify realized value or connect efficiency gains to validity, fairness, and candidate outcomes.",
+      "uncertainty": "The abstracts may omit numerical results available in full papers. Vendor or internal organizational studies may exist but may not meet the contract\u2019s evidence and independence requirements.",
+      "coverage_check": {
+        "query_terms": [
+          "time to hire AI recruitment",
+          "cost per hire AI",
+          "recruiter workload field experiment",
+          "quality of hire longitudinal"
+        ],
+        "matched_titles": [
+          "Ethics and discrimination in artificial intelligence-enabled recruitment practices",
+          "A UTAUT-Based Framework for Analyzing Users\u2019 Intention to Adopt Artificial Intelligence in Human Resource Recruitment: A Case Study of Thailand"
+        ],
+        "interpretation": "The supplied matches discuss efficiency or perceived value, not controlled measurements of realized business value and downstream quality."
+      },
+      "research_questions": [
+        "What causal effect does AI assistance have on time-to-hire and recruiter workload?",
+        "Do efficiency gains persist after including review, audit, appeal, and monitoring costs?",
+        "How do operational gains trade off against predictive validity, fairness, and candidate experience?",
+        "Which hiring stages produce measurable value under assistive versus semi-automated deployment?"
+      ],
+      "scout_queries": [
+        "AI recruitment field experiment time-to-hire recruiter workload",
+        "algorithmic hiring cost-per-hire causal evaluation",
+        "AI screening longitudinal quality-of-hire conversion",
+        "recruitment automation ROI independent evaluation fairness"
+      ]
+    },
+    {
+      "rank": 4,
+      "title": "Accessibility mechanisms and stage-specific outcomes for disabled applicants",
+      "gap_type": "evidence_gap",
+      "priority_score": 84,
+      "confidence": "high",
+      "scope": "Stage-level studies of accessibility barriers, accommodations, disability-specific measurement validity, progression, final selection, and appeal mechanisms.",
+      "evidence": [
+        {
+          "observation": "The UAE study reports different sentiment across disability types and lower final hiring outcomes for disabled applicants despite no significant difference in initial progression.",
+          "source": "openalex:W4404228668"
+        },
+        {
+          "observation": "The supplied corpus contains no second disability-focused accepted paper for replication or comparison.",
+          "source": "Accepted-paper corpus"
+        },
+        {
+          "observation": "The fairness review emphasizes vulnerable groups but the supplied abstract does not provide disability-specific stage-level outcome evidence.",
+          "source": "openalex:W4394590365"
+        }
+      ],
+      "llm_reasoning": "The UAE study identifies a stage-dependent disparity but does not, from the supplied abstract, isolate whether accessibility, measurement validity, workflow design, or human selection decisions caused it. Replication and mechanism-focused evidence are needed before interpreting the result.",
+      "uncertainty": "The full UAE paper may contain additional controls or tool descriptions. Results may not generalize beyond the UAE, the examined tools, or represented disability categories.",
+      "coverage_check": {
+        "query_terms": [
+          "disabled applicants AI hiring accessibility",
+          "reasonable accommodation algorithmic assessment",
+          "disability adverse impact recruitment AI",
+          "accessible automated interview"
+        ],
+        "matched_titles": [
+          "Evaluating Inclusivity and Fairness of AI Recruitment Tools for Hiring People with Disabilities in the United Arab Emirates(UAE)",
+          "Fairness, AI & recruitment"
+        ],
+        "interpretation": "One empirical paper provides disability-specific outcomes; the supplied corpus lacks comparative evidence across tools, jurisdictions, stages, and accommodation designs."
+      },
+      "research_questions": [
+        "At which hiring stage do disability-related outcome differences emerge, and through which mechanism?",
+        "Are AI assessment constructs and interfaces valid across disability types and assistive technologies?",
+        "How do accommodation, disclosure, human review, and appeal procedures alter outcomes?",
+        "Do accessibility improvements affect predictive validity or false-negative rates?"
+      ],
+      "scout_queries": [
+        "(\"AI hiring\" OR \"automated employment decision\") disability accessibility outcomes",
+        "algorithmic recruitment reasonable accommodation assistive technology",
+        "automated interview disability validation adverse impact",
+        "AI employment assessment disabled applicants appeal human review"
+      ]
+    },
+    {
+      "rank": 5,
+      "title": "Operationalizing fairness into auditable controls",
+      "gap_type": "translation_gap",
+      "priority_score": 82,
+      "confidence": "high",
+      "scope": "Implementation and evaluation of fairness definitions through documentation, subgroup testing, audit procedures, monitoring thresholds, remediation, appeals, and vendor assurance.",
+      "evidence": [
+        {
+          "observation": "The fairness review states that fairness has different meanings across stakeholders and focuses on definition, categorization, and practical implementation.",
+          "source": "openalex:W4394590365"
+        },
+        {
+          "observation": "The bias-mitigation review identifies vector-space correction and data augmentation as mitigation techniques.",
+          "source": "openalex:W4391598857"
+        },
+        {
+          "observation": "The ethics paper recommends dataset, transparency, internal governance, and external oversight measures.",
+          "source": "openalex:W4386714740"
+        },
+        {
+          "observation": "The corpus shape reports only one governance-control paper, whose supplied evidence concerns adoption intention rather than control effectiveness.",
+          "source": "Report excerpt and openalex:W4390880618"
+        }
+      ],
+      "llm_reasoning": "The corpus proposes fairness concepts and mitigation methods, but the supplied evidence does not show how organizations select fairness criteria, establish audit thresholds, respond to failures, or verify that controls improve outcomes in deployment.",
+      "uncertainty": "Detailed implementation guidance may appear in the full review articles. Jurisdiction-specific standards and audits may be indexed under legal or technical terminology not captured by the accepted corpus.",
+      "coverage_check": {
+        "query_terms": [
+          "algorithmic hiring fairness audit implementation",
+          "adverse impact monitoring AI recruitment",
+          "vendor assurance automated hiring",
+          "appeal contestability hiring algorithm"
+        ],
+        "matched_titles": [
+          "Fairness, AI & recruitment",
+          "A Comprehensive Review of AI Techniques for Addressing Algorithmic Bias in Job Hiring",
+          "Ethics and discrimination in artificial intelligence-enabled recruitment practices",
+          "Algorithmic inclusion: Shaping the predictive algorithms of artificial intelligence in hiring"
+        ],
+        "interpretation": "The supplied papers identify fairness and governance needs, but do not provide accepted evidence of deployed control effectiveness or repeatable audit workflows."
+      },
+      "research_questions": [
+        "How should employers choose fairness metrics for specific hiring stages and legal contexts?",
+        "Which audit and monitoring controls detect meaningful adverse impact after deployment?",
+        "How effective are remediation methods under intersectional and distribution-shift conditions?",
+        "What evidence should vendors provide to employers, regulators, applicants, and auditors?"
+      ],
+      "scout_queries": [
+        "algorithmic hiring audit protocol adverse impact monitoring",
+        "AI recruitment fairness metrics implementation case study",
+        "automated employment decision tool vendor audit assurance",
+        "algorithmic hiring appeal contestability remediation monitoring"
+      ]
+    },
+    {
+      "rank": 6,
+      "title": "Corpus integrity and false-positive acceptance control",
+      "gap_type": "corpus_gap",
+      "priority_score": 98,
+      "confidence": "high",
+      "scope": "Validate accepted-paper relevance, identifiers, URLs, and provenance before using corpus counts or gap conclusions.",
+      "evidence": [
+        {
+          "observation": "\u201cFormal proof search\u201d has the abstract \u201cProof search with verifier feedback,\u201d topic \u201cproof search,\u201d and no stated connection to hiring.",
+          "source": "openalex:1"
+        },
+        {
+          "observation": "Its source is listed as https://example.com rather than a scholarly or stable source URL.",
+          "source": "Report excerpt: Papers"
+        },
+        {
+          "observation": "The record was accepted from a scout run using only the query \u201cq.\u201d",
+          "source": "Scout run dated 2026-06-20"
+        },
+        {
+          "observation": "The research contract requires every paper to retain a source URL and stable identifier and requires rejection of adjacent out-of-scope work.",
+          "source": "AGENTS.md research contract and hard rules"
+        }
+      ],
+      "llm_reasoning": "This record is inconsistent with the topic contract and appears to be a false positive or test fixture. Because the corpus has only eight accepted records, retaining it materially distorts coverage counts and downstream gap analysis.",
+      "uncertainty": "The supplied record could represent intentionally injected test data. Its relevance cannot be recovered from the provided metadata.",
+      "coverage_check": {
+        "query_terms": [
+          "formal proof search hiring recruitment employment selection",
+          "openalex:1 provenance"
+        ],
+        "matched_titles": [
+          "Formal proof search"
+        ],
+        "interpretation": "The record matches no hiring concept in its title, abstract, or topic metadata and lacks a credible source URL."
+      },
+      "research_questions": [
+        "Is openalex:1 a test fixture or an accidental acceptance?",
+        "Does its identifier resolve to a real scholarly record?",
+        "Which validation rule allowed a non-hiring paper and placeholder URL to pass acceptance?",
+        "Should corpus statistics be regenerated after relevance and provenance validation?"
+      ],
+      "scout_queries": [
+        "validate openalex:1 title abstract source identifier",
+        "\"Formal proof search\" hiring recruitment",
+        "accepted corpus placeholder URL example.com audit",
+        "false positive relevance filter AI hiring corpus"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "slug": "ai-in-hiring-processes",
+  "topic": "AI in Hiring Processes",
+  "raw_intent": "How AI could impact on the hiring process?",
+  "research_question": "How does AI affect the design, execution, outcomes, and governance of hiring processes across sourcing, screening, assessment, interviewing, selection, and candidate communication?",
+  "goal": "Identify where AI can create measurable hiring value, where it introduces operational or legal risk, and which evidence supports responsible adoption and evaluation.",
+  "audience": "Talent acquisition leaders, HR operations teams, hiring managers, AI system designers, legal and compliance teams, and organizational decision-makers.",
+  "include": [
+    "AI applications across the end-to-end hiring lifecycle",
+    "Decision-support, automation, and human-in-the-loop hiring systems",
+    "Impacts on hiring speed, cost, quality, consistency, and candidate experience",
+    "Validity, reliability, fairness, bias, accessibility, privacy, transparency, and explainability",
+    "Performance differences across roles, industries, applicant groups, and labor-market contexts",
+    "Data, workflow, monitoring, escalation, audit, and accountability requirements",
+    "Applicable employment, anti-discrimination, data-protection, and automated-decision constraints",
+    "Failure modes including proxy discrimination, feedback loops, gaming, automation bias, and model drift"
+  ],
+  "exclude": [
+    "AI impacts on general workforce management after hiring",
+    "Employee productivity, retention, or performance-management systems unless directly used to validate hiring outcomes",
+    "Unsupported vendor marketing claims",
+    "Fully autonomous hiring recommendations without evaluation of human oversight and governance",
+    "Claims about legal compliance that are not tied to a defined jurisdiction"
+  ],
+  "years": {
+    "from": 2023,
+    "to": 2026
+  },
+  "evidence_types": [
+    "methods",
+    "benchmarks",
+    "systems",
+    "surveys"
+  ],
+  "taxonomy": [
+    "Hiring stage: sourcing, matching, screening, assessment, interviewing, selection, communication",
+    "AI function: generation, prediction, ranking, classification, recommendation, conversation, workflow automation",
+    "Decision role: assistive, advisory, semi-automated, autonomous",
+    "Evaluation dimension: utility, validity, reliability, efficiency, fairness, privacy, transparency, accessibility, security",
+    "Stakeholder: applicant, recruiter, hiring manager, employer, vendor, regulator, auditor",
+    "Risk mechanism: biased data, proxy variables, measurement error, distribution shift, gaming, hallucination, automation bias, weak oversight",
+    "Governance control: documentation, consent, human review, appeal, audit, monitoring, incident response, vendor assurance"
+  ],
+  "dashboard_sections": [
+    "AI use cases by hiring stage and decision role",
+    "Business-value metrics: time-to-hire, cost-per-hire, recruiter workload, conversion, and quality-of-hire",
+    "Evidence quality and benchmark comparability",
+    "Predictive validity, reliability, and generalization across jobs and populations",
+    "Fairness outcomes and adverse-impact analysis by applicant group",
+    "Candidate experience, accessibility, transparency, and contestability",
+    "Human-AI workflow design, override behavior, and accountability",
+    "Legal and policy requirements by jurisdiction",
+    "Privacy, security, data provenance, and vendor-risk controls",
+    "Adversarial risks, failure modes, monitoring signals, and mitigations"
+  ],
+  "cadence": "weekly",
+  "approval_required": false,
+  "search_queries": [
+    "artificial intelligence impact hiring recruitment sourcing screening assessment interviewing selection",
+    "AI hiring benchmark candidate screening job matching interview assessment predictive validity reliability",
+    "AI recruitment system human in the loop recruiter decision support workflow architecture monitoring",
+    "algorithmic hiring employment discrimination automated decision systems law regulation audit privacy",
+    "AI recruiting business value time to hire cost per hire quality of hire recruiter productivity ROI",
+    "algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability",
+    "AI hiring adversarial gaming prompt injection resume manipulation deepfake interview fraud automation bias model drift",
+    "generative AI recruiting systems candidate communication job descriptions interview assistants",
+    "algorithmic hiring survey employers recruiters applicants adoption trust attitudes",
+    "AI hiring methods causal evaluation field experiment longitudinal quality of hire"
+  ],
+  "scouting_strategy": [
+    "Map evidence to each hiring stage before comparing impacts across the full process.",
+    "Separate technical benchmark performance from real-world organizational outcomes and candidate impacts.",
+    "Prioritize studies with defined tasks, populations, baselines, subgroup analyses, and reproducible evaluation methods.",
+    "Compare AI-only, human-only, and human-AI workflows where evidence permits.",
+    "Extract business-value measures separately from validity, fairness, privacy, and candidate-experience measures.",
+    "Record jurisdiction, job type, labor-market setting, deployment scale, and vendor dependence for each system.",
+    "Assess agent-system requirements including tool permissions, data boundaries, human approval points, audit logs, escalation paths, and continuous monitoring.",
+    "Search for both intended benefits and adversarial or failure-oriented evidence, including applicant gaming and recruiter automation bias."
+  ],
+  "intent_refinement_provider": "codex",
+  "intent_refinement_model": "codex-cli:configured-model",
+  "created_at": "2026-06-19"
+}

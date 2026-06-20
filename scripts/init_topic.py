@@ -105,7 +105,8 @@ description: Scout, review, and ingest papers for {config['topic']}. Use for sch
 
 Search within {config['years']['from']}-{config['years']['to']}.
 Prioritize: {", ".join(config['evidence_types'])}.
-Report token_count and money_cost_usd for every scouting run, even when the cost is zero.
+Scout uses model-backed candidate scoring by default. Report token_count and money_cost_usd
+for every scouting run, even when the cost is zero.
 
 ## Topic-Specific Scouting Strategy
 
@@ -182,7 +183,7 @@ def render_scout_prompt(config: dict) -> str:
     return f"""AI Topic Scout scheduled run for: {config['topic']}
 
 1. Read `AGENTS.md`, `topic.json`, and `skills/topic-paper-scout/SKILL.md`.
-2. Run the configured searches and scholarly graph expansion.
+2. Run the configured searches, scholarly graph expansion, and model-backed candidate scoring.
 3. Compare candidates against `data/papers.json`.
 4. Apply inclusion rules: {", ".join(config['include'])}.
 5. Apply exclusions: {", ".join(config['exclude']) or "none"}.
@@ -368,6 +369,8 @@ def main() -> int:
         "scouting_strategy": refined["scouting_strategy"],
         "intent_refinement_provider": "offline" if args.offline else args.provider,
         "intent_refinement_model": refinement_model,
+        "scout_provider": args.provider,
+        "scout_model": args.model or refinement_model,
         "created_at": date.today().isoformat(),
     }
     initialize(config)

@@ -1,0 +1,28 @@
+AI Topic Scout scheduled run for: AI in Hiring Processes
+
+1. Read `AGENTS.md`, `topic.json`, and `skills/topic-paper-scout/SKILL.md`.
+2. Run the configured searches and scholarly graph expansion.
+3. Compare candidates against `data/papers.json`.
+4. Apply inclusion rules: AI applications across the end-to-end hiring lifecycle, Decision-support, automation, and human-in-the-loop hiring systems, Impacts on hiring speed, cost, quality, consistency, and candidate experience, Validity, reliability, fairness, bias, accessibility, privacy, transparency, and explainability, Performance differences across roles, industries, applicant groups, and labor-market contexts, Data, workflow, monitoring, escalation, audit, and accountability requirements, Applicable employment, anti-discrimination, data-protection, and automated-decision constraints, Failure modes including proxy discrimination, feedback loops, gaming, automation bias, and model drift.
+5. Apply exclusions: AI impacts on general workforce management after hiring, Employee productivity, retention, or performance-management systems unless directly used to validate hiring outcomes, Unsupported vendor marketing claims, Fully autonomous hiring recommendations without evaluation of human oversight and governance, Claims about legal compliance that are not tied to a defined jurisdiction.
+6. Verify identifiers, source URLs, publication years, and abstracts.
+7. If approval is required, write candidates and reviewer recommendations only.
+8. If new papers are accepted:
+   - update `data/papers.json`;
+   - run `make corpus`;
+   - use `skills/analyze-research-gaps/SKILL.md`;
+   - validate the opportunity JSON;
+   - run `make dashboard`;
+   - commit and report only the accepted additions.
+9. If no paper is accepted, do not rewrite tracked artifacts and return no update.
+10. Include token_count and money_cost_usd in every scouting report and acceptance record.
+
+Topic-specific strategy:
+   - Map evidence to each hiring stage before comparing impacts across the full process.
+   - Separate technical benchmark performance from real-world organizational outcomes and candidate impacts.
+   - Prioritize studies with defined tasks, populations, baselines, subgroup analyses, and reproducible evaluation methods.
+   - Compare AI-only, human-only, and human-AI workflows where evidence permits.
+   - Extract business-value measures separately from validity, fairness, privacy, and candidate-experience measures.
+   - Record jurisdiction, job type, labor-market setting, deployment scale, and vendor dependence for each system.
+   - Assess agent-system requirements including tool permissions, data boundaries, human approval points, audit logs, escalation paths, and continuous monitoring.
+   - Search for both intended benefits and adversarial or failure-oriented evidence, including applicant gaming and recruiter automation bias.

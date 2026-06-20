@@ -105,6 +105,7 @@ def main() -> int:
         print("No accepted new papers; report and dashboard remain unchanged.")
         return 0
     subprocess.run([sys.executable, "scripts/build_corpus.py"], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, "scripts/analyze_research_gaps.py"], cwd=ROOT, check=True)
     subprocess.run([sys.executable, "scripts/build_dashboard.py"], cwd=ROOT, check=True)
     return 0
 
