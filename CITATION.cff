@@ -1,0 +1,20 @@
+# YAML 1.2
+---
+cff-version: 1.2.0
+title: "Topic Scouting and Auto Dashboard Generation"
+message: "If you use this project, please cite the repository and preserve the authorship and license notices."
+type: software
+authors:
+  - family-names: "Chen"
+    given-names: "Tzu-Chun"
+    orcid: "https://orcid.org/0000-0002-8872-5318"
+abstract: "Topic Scout turns a research question into a persistent, agent-operated paper intelligence workspace with paper scouting, synthesis, dashboards, and research gap analysis."
+repository-code: "https://github.com/ginaecho/topic-scout"
+url: "https://github.com/ginaecho/topic-scout"
+license: "MIT"
+keywords:
+  - "research agents"
+  - "literature review"
+  - "paper scouting"
+  - "dashboards"
+
