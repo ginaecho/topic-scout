@@ -4,6 +4,9 @@ cff-version: 1.2.0
 title: "Topic Scouting and Auto Dashboard Generation"
 message: "If you use this project, please cite the repository and preserve the authorship and license notices."
 type: software
+version: "v0.1.0"
+date-released: 2026-06-28
+doi: 10.5281/zenodo.21009802
 authors:
   - family-names: "Chen"
     given-names: "Tzu-Chun"
@@ -17,4 +20,3 @@ keywords:
   - "literature review"
   - "paper scouting"
   - "dashboards"
-

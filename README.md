@@ -1,5 +1,7 @@
 # Topic Scouting and Auto Dashboard Generation
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21009802.svg)](https://doi.org/10.5281/zenodo.21009802)
+
 Turn any research question into a persistent, agent-operated paper intelligence workspace.
 
 AI Topic Scout asks the user what they want to investigate, generates topic-specific agent and
