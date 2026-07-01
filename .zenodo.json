@@ -1,0 +1,20 @@
+{
+  "title": "Topic Scouting and Auto Dashboard Generation",
+  "description": "Topic Scout turns a research question into a persistent, agent-operated paper intelligence workspace with paper scouting, synthesis, dashboards, and research gap analysis.",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Chen, Tzu-Chun",
+      "orcid": "0000-0002-8872-5318"
+    }
+  ],
+  "keywords": [
+    "research agents",
+    "literature review",
+    "paper scouting",
+    "dashboards"
+  ],
+  "doi": "10.5281/zenodo.21009802"
+}

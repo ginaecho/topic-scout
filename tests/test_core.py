@@ -680,12 +680,12 @@ class CoreTests(unittest.TestCase):
             output_path.write_text(json.dumps(refined), encoding="utf-8")
             return subprocess.CompletedProcess(command, 0, "", "")
 
-        with patch("intent_refiner.shutil.which", return_value="/usr/local/bin/codex"):
-            result, model = refine_intent_codex(
-                "raw sentence",
-                cwd=ROOT,
-                run=fake_run,
-            )
+        result, model = refine_intent_codex(
+            "raw sentence",
+            cwd=ROOT,
+            run=fake_run,
+            which=lambda _: "codex",
+        )
         self.assertEqual(result["title"], refined["title"])
         self.assertEqual(model, "codex-cli:configured-model")
         self.assertIn("--ephemeral", captured["command"])

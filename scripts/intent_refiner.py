@@ -177,9 +177,10 @@ def refine_intent_codex(
     model: str | None = None,
     cwd: Path | str | None = None,
     run=subprocess.run,
+    which=shutil.which,
 ) -> tuple[dict, str]:
     """Refine intent through an authenticated Codex CLI session."""
-    executable = shutil.which("codex")
+    executable = which("codex")
     if not executable:
         raise IntentRefinementError(
             "Codex CLI is not installed. Install and sign in to Codex, "
