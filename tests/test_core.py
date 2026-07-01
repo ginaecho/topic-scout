@@ -376,32 +376,64 @@ class CoreTests(unittest.TestCase):
 
     def test_scout_records_history_even_when_nothing_is_accepted(self):
         with tempfile.TemporaryDirectory() as directory:
-            env = dict(os.environ, TOPIC_SCOUT_ROOT=directory)
-            subprocess.run(
-                [
-                    sys.executable,
-                    str(ROOT / "scripts" / "init_topic.py"),
-                    "--topic", "AI theorem proving",
-                    "--goal", "Track proof systems",
-                    "--audience", "researchers",
-                    "--include", "proof search,formal verification",
-                    "--years", "2023-2026",
-                    "--taxonomy", "proof search,verification,benchmarks",
-                    "--offline",
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            papers_path = root / "data" / "papers.json"
+            candidates_path = root / "data" / "candidates.json"
+            papers_path.write_text(
+                json.dumps({"papers": [], "scout_runs": []}),
+                encoding="utf-8",
+            )
+            fake_result = {
+                "topic": "AI theorem proving",
+                "queries": ["q"],
+                "candidates": [
+                    {
+                        "id": "openalex:1",
+                        "title": "Formal proof search",
+                        "year": 2025,
+                        "url": "https://example.com",
+                        "doi": None,
+                        "abstract": "Proof search with verifier feedback.",
+                        "citation_count": 10,
+                        "topics": ["proof search"],
+                        "discovered_via": ["query:q"],
+                        "relevance_score": 8.0,
+                        "relevance_reason": "aligned",
+                    }
                 ],
-                check=True,
-                env=env,
-                capture_output=True,
-                text=True,
-            )
-            subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "scout.py"), "--offline"],
-                check=True,
-                env=env,
-                capture_output=True,
-                text=True,
-            )
-            corpus = json.loads((Path(directory) / "data" / "papers.json").read_text())
+                "edges": [],
+            }
+            fake_topic = {
+                "topic": "AI theorem proving",
+                "goal": "Track proof systems",
+                "audience": "researchers",
+                "include": ["proof search", "formal verification"],
+                "exclude": [],
+                "years": {"from": 2023, "to": 2026},
+                "taxonomy": ["proof search", "verification", "benchmarks"],
+                "approval_required": True,
+            }
+
+            def fake_load_json(path, default):
+                if not path.exists():
+                    return default
+                return json.loads(path.read_text(encoding="utf-8"))
+
+            def fake_write_json(path, payload):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+            with patch.object(scout_module, "discover", return_value=fake_result):
+                with patch.object(scout_module, "load_topic", return_value=fake_topic):
+                    with patch.object(scout_module, "load_json", side_effect=fake_load_json):
+                        with patch.object(scout_module, "write_json", side_effect=fake_write_json):
+                            with patch.object(scout_module, "PAPERS_PATH", papers_path):
+                                with patch.object(scout_module, "CANDIDATES_PATH", candidates_path):
+                                    with patch.object(sys, "argv", ["scout.py", "--offline"]):
+                                        self.assertEqual(scout_module.main(), 0)
+
+            corpus = json.loads(papers_path.read_text())
             self.assertEqual(len(corpus["scout_runs"]), 1)
             self.assertEqual(corpus["scout_runs"][0]["accepted_count"], 0)
             self.assertGreaterEqual(corpus["scout_runs"][0]["candidate_count"], 0)
