@@ -7,13 +7,15 @@
 
 > **The hard part of research is not finding papers — it's maintaining a living corpus that keeps up with a field.**
 
-**AI Topic Scout** is an open-source multi-agent tool that turns a plain-language research intent into a self-updating literature review workspace. It integrates [OpenAlex](https://openalex.org/) scholarly graph search, LLM-backed relevance ranking, citation-graph expansion, and multi-agent task emission — so you can build and maintain a living paper corpus for any AI research topic without manual searching.
+**AI Topic Scout** is an open-source multi-agent tool that turns a plain-language research intent into a topic-specific, self-updating literature review workspace. It follows the pattern of focused research scouts such as EvaPaper, but makes the topic contract reusable: the same repo can generate a new scouting workspace for any research question, then hand that workspace to Codex, GitHub Copilot, Copilot CLI, Microsoft scouting-style agents, Claw-style agents, or swarm execution.
+
+It integrates [OpenAlex](https://openalex.org/) scholarly graph search, LLM-backed relevance ranking, citation-graph expansion, and multi-agent task emission — so you can build and maintain a living paper corpus for any AI research topic without manual searching.
 
 ---
 
 ## ⚡ TL;DR
 
-Describe a research topic in natural language → `make init` generates a workspace → `make scout` queries OpenAlex, ranks candidates with an LLM, and auto-accepts papers above a relevance threshold → `make dashboard` produces an interactive HTML dashboard with a citation graph, research wiki, trends, cost tracking, and gap analysis. Emit the full workflow as Claw or swarm task manifests for multi-agent orchestration. One full run costs cents of LLM API.
+Describe a research topic in natural language -> `make init` generates a workspace -> `make scout` queries OpenAlex, ranks candidates with an LLM, and auto-accepts papers above a relevance threshold -> `make dashboard` produces an interactive HTML dashboard with a citation graph, research wiki, trends, cost tracking, and gap analysis. Emit the full workflow as Codex/Copilot-readable, Claw, Microsoft scouting-style, or swarm task manifests for multi-agent orchestration. One full run costs cents of LLM API.
 
 ---
 
@@ -106,18 +108,23 @@ python3 scripts/scout.py --offline                 # OpenAlex only, zero tokens
 | `topic-dashboard.html` | Interactive dashboard: graph · wiki · trends · costs |
 | `data/claw_tasks.json` | Claw-oriented task manifest |
 | `data/swarm_tasks.json` | Swarm-oriented task manifest |
+| `data/copilot_tasks.json` | GitHub Copilot-oriented task manifest |
+| `data/copilot-cli_tasks.json` | Copilot CLI-oriented task manifest |
+| `data/microsoft-scouting_tasks.json` | Microsoft scouting-style task manifest |
 
 `make reset` removes only generated workspace artifacts; source, schemas, and tracked examples remain.
 
 ---
 
-## 🤖 Multi-Agent Orchestration (Claw & Swarm)
+## 🤖 Multi-Agent Orchestration
 
 ```mermaid
 flowchart LR
     A["orchestrate.py"] -->|sequential| B["Local runner\nstep-by-step"]
     A -->|claw| C["claw_tasks.json\nClaw agents"]
     A -->|swarm| D["swarm_tasks.json\nSubagent swarm"]
+    A -->|copilot| M["copilot_tasks.json\nGitHub Copilot"]
+    A -->|microsoft-scouting| N["microsoft-scouting_tasks.json\nMicrosoft scouts"]
     C --> E["Agent: scout"] & F["Agent: review"] & G["Agent: dashboard"]
     D --> H["Worker A"] & I["Worker B"] & J["Worker C"]
 ```
@@ -127,7 +134,12 @@ python3 scripts/orchestrate.py plan              # show the generated task plan
 python3 scripts/orchestrate.py run --mode sequential
 python3 scripts/orchestrate.py emit --mode claw
 python3 scripts/orchestrate.py emit --mode swarm
+python3 scripts/orchestrate.py emit --mode copilot
+python3 scripts/orchestrate.py emit --mode copilot-cli
+python3 scripts/orchestrate.py emit --mode microsoft-scouting
 ```
+
+Every emitted manifest includes the topic contract, command surface, role brief paths under `agents/`, required contract files, task inputs, task outputs, and dependency order. Runtimes can execute the manifest directly or translate it into their own planner format.
 
 ---
 
@@ -160,8 +172,8 @@ Example outputs live under `examples/ai-in-hiring-processes/` with a complete wo
 
 - **Data source:** OpenAlex scholarly graph API, citation-neighborhood expansion
 - **Ranking:** LLM-backed relevance scoring (Codex CLI or OpenAI Responses API)
-- **Orchestration:** multi-agent task manifests for Claw and swarm execution
+- **Orchestration:** multi-agent task manifests for Codex, GitHub Copilot, Copilot CLI, Microsoft scouting-style agents, Claw, and swarm execution
 - **Output:** Markdown notes, synthesis report, interactive HTML dashboard, JSON manifests
 
 **This repo is designed to match searches for:**
-`automated literature review` · `AI paper discovery` · `OpenAlex Python` · `citation graph exploration` · `research scouting workflow` · `multi-agent research automation` · `LLM paper ranking` · `research gap analysis` · `living corpus maintenance` · `paper triage tool` · `Claw task manifest` · `swarm agent research` · `research monitoring automation` · `academic paper search agent`
+`automated literature review` · `AI paper discovery` · `OpenAlex Python` · `citation graph exploration` · `research scouting workflow` · `multi-agent research automation` · `LLM paper ranking` · `research gap analysis` · `living corpus maintenance` · `paper triage tool` · `Claw task manifest` · `swarm agent research` · `GitHub Copilot research workflow` · `Copilot CLI task manifest` · `Microsoft scouting agents` · `research monitoring automation` · `academic paper search agent`

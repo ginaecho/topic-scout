@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from urllib.error import HTTPError, URLError
 from datetime import datetime, timezone
 
 from costs import zero_cost
@@ -48,11 +49,25 @@ def main() -> int:
     accept_score = args.accept_score
     if accept_score is None and not config["approval_required"]:
         accept_score = DEFAULT_ACCEPT_SCORE
-    result = discover(config, args.query, args.seed_limit, args.neighbors)
+    discovery_error = None
+    try:
+        result = discover(config, args.query, args.seed_limit, args.neighbors)
+    except (HTTPError, URLError, TimeoutError) as exc:
+        discovery_error = f"{type(exc).__name__}: {exc}"
+        result = {
+            "topic": config["topic"],
+            "queries": [args.query] if args.query else config["search_queries"],
+            "candidates": [],
+            "edges": [],
+            "discovery_error": discovery_error,
+        }
     existing = load_json(PAPERS_PATH, {"papers": []})
     known = {paper["id"] for paper in existing.get("papers", [])}
     result["generated_at"] = datetime.now(timezone.utc).isoformat()
-    if args.offline:
+    if discovery_error:
+        result["cost"] = zero_cost()
+        result["scout_provider"] = "openalex"
+    elif args.offline:
         result["cost"] = zero_cost()
         result["scout_provider"] = "openalex"
     else:
@@ -151,6 +166,8 @@ def main() -> int:
         f"Discovered {len(result['candidates'])} candidates "
         f"({result['new_candidate_count']} not in corpus)."
     )
+    if discovery_error:
+        print(f"OpenAlex discovery failed; wrote an empty candidate queue. {discovery_error}")
     if config["approval_required"]:
         print(f"Review {CANDIDATES_PATH}; acceptance requires a librarian or human.")
     elif accepted:

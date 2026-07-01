@@ -11,8 +11,44 @@ import sys
 from workspace import DATA_DIR, PAPERS_PATH, ROOT, load_json, load_topic, write_json
 
 
+SUPPORTED_MODES = ("sequential", "claw", "swarm", "copilot", "copilot-cli", "microsoft-scouting")
+
+MODE_PROFILES = {
+    "sequential": {
+        "runtime": "local-python",
+        "consumer": "Deterministic local runner",
+        "manifest": "data/sequential_tasks.json",
+    },
+    "claw": {
+        "runtime": "claw",
+        "consumer": "Claw-style delegated research agents",
+        "manifest": "data/claw_tasks.json",
+    },
+    "swarm": {
+        "runtime": "swarm",
+        "consumer": "Subagent swarm orchestration",
+        "manifest": "data/swarm_tasks.json",
+    },
+    "copilot": {
+        "runtime": "github-copilot",
+        "consumer": "GitHub Copilot coding agent or chat workspace",
+        "manifest": "data/copilot_tasks.json",
+    },
+    "copilot-cli": {
+        "runtime": "github-copilot-cli",
+        "consumer": "GitHub Copilot CLI task execution",
+        "manifest": "data/copilot-cli_tasks.json",
+    },
+    "microsoft-scouting": {
+        "runtime": "microsoft-scouting",
+        "consumer": "Microsoft scouting-style research agents",
+        "manifest": "data/microsoft-scouting_tasks.json",
+    },
+}
+
+
 def tasks(config: dict) -> list[dict]:
-    return [
+    shared = [
         {
             "id": "queries",
             "role": "query_designer",
@@ -70,26 +106,52 @@ def tasks(config: dict) -> list[dict]:
             "depends_on": ["gaps"],
         },
     ]
+    for task in shared:
+        task["agent_brief"] = f"agents/{task['role'].replace('_', '-')}.md"
+        task["contract_files"] = ["AGENTS.md", "TOPIC_AGENTS.md", "topic.json"]
+    return shared
 
 
 def emit(mode: str, config: dict) -> dict:
+    profile = MODE_PROFILES[mode]
     payload = {
         "mode": mode,
+        "runtime": profile["runtime"],
+        "consumer": profile["consumer"],
         "topic": config["topic"],
+        "topic_contract": {
+            "topic": config["topic"],
+            "research_question": config.get("research_question"),
+            "goal": config.get("goal"),
+            "audience": config.get("audience"),
+            "include": config.get("include", []),
+            "exclude": config.get("exclude", []),
+            "years": config.get("years", {}),
+            "approval_required": config.get("approval_required", True),
+        },
         "coordinator_instruction": (
             "Read AGENTS.md, TOPIC_AGENTS.md, and topic.json. Assign only accepted research-contract tasks. "
-            "Do not publish when no new paper is accepted."
+            "Use the generated role briefs under agents/. Do not publish when no new paper is accepted."
         ),
+        "commands": {
+            "init": "make init",
+            "scout": "make scout",
+            "review": "make review",
+            "accept": "python3 scripts/accept_candidates.py <candidate-id>...",
+            "corpus": "make corpus",
+            "opportunities": "make opportunities",
+            "dashboard": "make dashboard",
+        },
         "tasks": tasks(config),
     }
-    write_json(DATA_DIR / f"{mode}_tasks.json", payload)
+    write_json(ROOT / profile["manifest"], payload)
     return payload
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["plan", "emit", "run"])
-    parser.add_argument("--mode", choices=["sequential", "claw", "swarm"], default="sequential")
+    parser.add_argument("--mode", choices=SUPPORTED_MODES, default="sequential")
     args = parser.parse_args()
     config = load_topic()
     payload = emit(args.mode, config)
@@ -97,7 +159,7 @@ def main() -> int:
         print(json.dumps(payload, indent=2))
         return 0
     if args.mode != "sequential":
-        raise SystemExit("`run` executes deterministic stages only; use `emit` for claw/swarm.")
+        raise SystemExit("`run` executes deterministic stages only; use `emit` for agent runtimes.")
     before = len(load_json(PAPERS_PATH, {"papers": []})["papers"])
     subprocess.run([sys.executable, "scripts/scout.py"], cwd=ROOT, check=True)
     after = len(load_json(PAPERS_PATH, {"papers": []})["papers"])

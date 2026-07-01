@@ -18,6 +18,7 @@ from intent_refiner import refine_intent, refine_intent_codex
 from paper_graph import Candidate, relevance
 import scout as scout_module
 import analyze_research_gaps as gaps_module
+import orchestrate as orchestrate_module
 from scout_llm import score_candidates_api, score_candidates_codex
 
 
@@ -96,6 +97,23 @@ class CoreTests(unittest.TestCase):
             topic = json.loads((root / "topic.json").read_text())
             self.assertEqual(topic["raw_intent"], "AI theorem proving")
             self.assertIn("dashboard_sections", topic)
+
+    def test_orchestrate_emits_cross_agent_manifests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(orchestrate_module, "ROOT", root):
+                with patch.object(orchestrate_module, "DATA_DIR", root / "data"):
+                    for mode in ["claw", "swarm", "copilot", "copilot-cli", "microsoft-scouting"]:
+                        payload = orchestrate_module.emit(mode, CONFIG)
+                        manifest_path = root / orchestrate_module.MODE_PROFILES[mode]["manifest"]
+                        self.assertTrue(manifest_path.exists())
+                        self.assertEqual(payload["mode"], mode)
+                        self.assertIn("runtime", payload)
+                        self.assertIn("topic_contract", payload)
+                        self.assertIn("commands", payload)
+                        self.assertEqual(payload["topic_contract"]["include"], CONFIG["include"])
+                        self.assertEqual(payload["tasks"][0]["contract_files"], ["AGENTS.md", "TOPIC_AGENTS.md", "topic.json"])
+                        self.assertEqual(payload["tasks"][0]["agent_brief"], "agents/query-designer.md")
 
     def test_intent_refinement_uses_structured_responses_output(self):
         refined = {

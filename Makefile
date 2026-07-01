@@ -13,6 +13,7 @@ help:
 	"  make opportunities  Generate LLM-backed research opportunities" \
 	"  make dashboard  Build HTML dashboard, graph, wiki, and opportunities" \
 	"  make plan       Print the generated multi-agent task plan" \
+	"  python3 scripts/orchestrate.py emit --mode copilot|copilot-cli|microsoft-scouting" \
 	"  make opportunities-check  Validate LLM opportunity JSON" \
 	"  make test       Run unit tests"
 
@@ -23,6 +24,8 @@ reset:
 	rm -rf TOPIC_AGENTS.md agents data/candidates.json data/dashboard.json \
 		data/papers.json data/research_opportunities.json \
 		data/sequential_tasks.json data/claw_tasks.json data/swarm_tasks.json \
+		data/copilot_tasks.json data/copilot-cli_tasks.json \
+		data/microsoft-scouting_tasks.json \
 		reports scout_cron_payload.txt skills/analyze-research-gaps \
 		skills/topic-paper-scout topic-dashboard.html topic.json
 
