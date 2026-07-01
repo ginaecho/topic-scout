@@ -1,179 +1,119 @@
-# AI Topic Scout — Automated Literature Review & Paper Discovery for AI Agents
+# AI Topic Scout
 
-[![GitHub stars](https://img.shields.io/github/stars/ginaecho/topic-scout?style=flat-square)](https://github.com/ginaecho/topic-scout/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=flat-square)](https://www.python.org/)
 [![OpenAlex](https://img.shields.io/badge/data-OpenAlex-green.svg?style=flat-square)](https://openalex.org/)
 
-> **The hard part of research is not finding papers — it's maintaining a living corpus that keeps up with a field.**
-
-**AI Topic Scout** is an open-source multi-agent tool that turns a plain-language research intent into a topic-specific, self-updating literature review workspace. It follows the pattern of focused research scouts such as EvaPaper, but makes the topic contract reusable: the same repo can generate a new scouting workspace for any research question, then hand that workspace to Codex, GitHub Copilot, Copilot CLI, Microsoft scouting-style agents, Claw-style agents, or swarm execution.
-
-It integrates [OpenAlex](https://openalex.org/) scholarly graph search, LLM-backed relevance ranking, citation-graph expansion, and multi-agent task emission — so you can build and maintain a living paper corpus for any AI research topic without manual searching.
+Turn a plain-language research intent into a self-updating literature workspace. Discover, rank, and maintain a living paper corpus for any AI research topic — driven by Codex, Claude Code, GitHub Copilot, Copilot CLI, or Microsoft scouting-style agents.
 
 ---
 
-## ⚡ TL;DR
+## What it does
 
-Describe a research topic in natural language -> `make init` generates a workspace -> `make scout` queries OpenAlex, ranks candidates with an LLM, and auto-accepts papers above a relevance threshold -> `make dashboard` produces an interactive HTML dashboard with a citation graph, research wiki, trends, cost tracking, and gap analysis. Emit the full workflow as Codex/Copilot-readable, Claw, Microsoft scouting-style, or swarm task manifests for multi-agent orchestration. One full run costs cents of LLM API.
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart TB
-    subgraph Input
-        A["Research Intent\n(natural language)"]
-    end
-    subgraph Discovery
-        B["OpenAlex API\nscholarly graph search"]
-        C["Citation Graph\nneighborhood expansion"]
-    end
-    subgraph Ranking
-        D["LLM Scorer\nrelevance ranking & triage"]
-    end
-    subgraph Corpus
-        E["papers.json\naccepted corpus"]
-        F["Markdown Notes\nper paper"]
-        G["Synthesis Report"]
-    end
-    subgraph Orchestration
-        H["Sequential Tasks"]
-        I["Claw Manifests"]
-        J["Swarm Manifests"]
-    end
-    subgraph Output
-        K["Dashboard HTML\ngraph · wiki · trends · costs"]
-        L["Research Gaps\nopportunity analysis"]
-    end
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    E --> G
-    E --> H & I & J
-    G --> K & L
-```
+1. **Intent → contract.** Refine natural language into `topic.json` (include/exclude rules, taxonomy, queries).
+2. **Discover.** Query [OpenAlex](https://openalex.org) + expand citation neighborhoods.
+3. **Rank.** Score candidates with an LLM against the topic contract.
+4. **Curate.** Approve into `data/papers.json`; auto-generate notes + synthesis report.
+5. **Publish.** Interactive HTML dashboard, research gap analysis, agent task manifests.
 
 ---
 
-## 🚀 Quick Start
+## Requirements
+
+- Python 3.9+
+- One of: [Codex CLI](https://github.com/openai/codex) (recommended, no key needed), or `OPENAI_API_KEY`, or `--offline`
+- Optional: `git`, a browser for the dashboard
+
+---
+
+## Quick start
 
 ```bash
-codex login
-make init          # refine intent → generate topic workspace
-make scout         # OpenAlex search + LLM ranking
-make corpus        # build paper notes + synthesis report
-make opportunities # generate research gaps
-make dashboard     # interactive HTML dashboard
-```
+git clone https://github.com/ginaecho/topic-scout.git
+cd topic-scout
 
-**End-to-end pipeline:**
-
-```mermaid
-flowchart LR
-    A["natural-language\nintent"] -->|make init| B["topic.json\nworkspace"]
-    B -->|make scout| C["ranked\ncandidates"]
-    C --> D{approval\nrequired?}
-    D -->|yes| E["make review\n+ accept"]
-    D -->|"no — auto-accept\n≥ score"| F["papers.json\ncorpus"]
-    E --> F
-    F -->|make corpus| G["notes +\nreport"]
-    G -->|make opportunities| H["research\ngaps"]
-    H -->|make dashboard| I["topic-dashboard\n.html"]
-```
-
-**Provider options:**
-
-```bash
-make init                                          # Codex CLI — no API key needed
-export OPENAI_API_KEY="..." && python3 scripts/init_topic.py --provider api
-python3 scripts/init_topic.py --offline            # no LLM call during setup
-python3 scripts/scout.py --accept-score 8.0        # custom acceptance threshold
-python3 scripts/scout.py --offline                 # OpenAlex only, zero tokens
-```
-
----
-
-## 📦 Outputs
-
-| Artifact | Description |
-|---|---|
-| `data/candidates.json` | Discovered and LLM-ranked candidate papers |
-| `data/papers.json` | Accepted corpus + full scout history |
-| `reports/research_report.md` | Synthesized report over accepted papers |
-| `data/research_opportunities.json` | LLM-generated research gaps |
-| `topic-dashboard.html` | Interactive dashboard: graph · wiki · trends · costs |
-| `data/claw_tasks.json` | Claw-oriented task manifest |
-| `data/swarm_tasks.json` | Swarm-oriented task manifest |
-| `data/copilot_tasks.json` | GitHub Copilot-oriented task manifest |
-| `data/copilot-cli_tasks.json` | Copilot CLI-oriented task manifest |
-| `data/microsoft-scouting_tasks.json` | Microsoft scouting-style task manifest |
-
-`make reset` removes only generated workspace artifacts; source, schemas, and tracked examples remain.
-
----
-
-## 🤖 Multi-Agent Orchestration
-
-```mermaid
-flowchart LR
-    A["orchestrate.py"] -->|sequential| B["Local runner\nstep-by-step"]
-    A -->|claw| C["claw_tasks.json\nClaw agents"]
-    A -->|swarm| D["swarm_tasks.json\nSubagent swarm"]
-    A -->|copilot| M["copilot_tasks.json\nGitHub Copilot"]
-    A -->|microsoft-scouting| N["microsoft-scouting_tasks.json\nMicrosoft scouts"]
-    C --> E["Agent: scout"] & F["Agent: review"] & G["Agent: dashboard"]
-    D --> H["Worker A"] & I["Worker B"] & J["Worker C"]
-```
-
-```bash
-python3 scripts/orchestrate.py plan              # show the generated task plan
-python3 scripts/orchestrate.py run --mode sequential
-python3 scripts/orchestrate.py emit --mode claw
-python3 scripts/orchestrate.py emit --mode swarm
-python3 scripts/orchestrate.py emit --mode copilot
-python3 scripts/orchestrate.py emit --mode copilot-cli
-python3 scripts/orchestrate.py emit --mode microsoft-scouting
-```
-
-Every emitted manifest includes the topic contract, command surface, role brief paths under `agents/`, required contract files, task inputs, task outputs, and dependency order. Runtimes can execute the manifest directly or translate it into their own planner format.
-
----
-
-## 🛠️ Tool Surface for AI Agents
-
-This repo is structured so coding agents and research agents can treat it as a **tool surface**, not just source code.
-
-| Command | Action |
-|---|---|
-| `make init` | Create topic workspace from natural-language intent |
-| `make scout` | Discover and rank candidate papers via OpenAlex + LLM |
-| `make corpus` | Rebuild paper notes and synthesis report |
-| `make opportunities` | Generate evidence-backed research gap analysis |
-| `make dashboard` | Regenerate interactive HTML dashboard |
-| `make reset` | Clear generated workspace for a fresh topic |
-
-Review flow (approval-gated):
-
-```bash
-make review
+make init          # interview → topic.json + role briefs + skills
+make scout         # OpenAlex + LLM ranking → data/candidates.json
+make review        # inspect the review queue
 python3 scripts/accept_candidates.py openalex:W123 openalex:W456
-make corpus && make opportunities && make dashboard
+make corpus        # paper notes + reports/research_report.md
+make opportunities # research gap analysis
+make dashboard     # topic-dashboard.html
 ```
 
-Example outputs live under `examples/ai-in-hiring-processes/` with a complete workspace, accepted corpus, reports, dashboard artifacts, and task manifests.
+Open `topic-dashboard.html` in a browser when done.
+
+### Provider options
+
+```bash
+make init                                                 # Codex CLI, interactive
+python3 scripts/init_topic.py --intent "your topic" --provider api   # OpenAI API
+python3 scripts/init_topic.py --offline                   # no LLM
+python3 scripts/scout.py --accept-score 8.0               # auto-accept threshold
+python3 scripts/scout.py --offline                        # OpenAlex only
+QUERY="benchmark X" make scout                            # targeted supplemental query
+make reset                                                # wipe generated workspace
+```
 
 ---
 
-## 🧬 Tech Stack & Indexing Keywords
+## Starting an agent
 
-- **Data source:** OpenAlex scholarly graph API, citation-neighborhood expansion
-- **Ranking:** LLM-backed relevance scoring (Codex CLI or OpenAI Responses API)
-- **Orchestration:** multi-agent task manifests for Codex, GitHub Copilot, Copilot CLI, Microsoft scouting-style agents, Claw, and swarm execution
-- **Output:** Markdown notes, synthesis report, interactive HTML dashboard, JSON manifests
+Every agent runs the same command surface — pick your runtime:
 
-**This repo is designed to match searches for:**
-`automated literature review` · `AI paper discovery` · `OpenAlex Python` · `citation graph exploration` · `research scouting workflow` · `multi-agent research automation` · `LLM paper ranking` · `research gap analysis` · `living corpus maintenance` · `paper triage tool` · `Claw task manifest` · `swarm agent research` · `GitHub Copilot research workflow` · `Copilot CLI task manifest` · `Microsoft scouting agents` · `research monitoring automation` · `academic paper search agent`
+| Agent | Kickoff |
+|---|---|
+| **Claude Code** | `cd` into the repo. Claude reads `AGENTS.md` automatically. Say: *"Scout papers on <topic>."* |
+| **Codex CLI** | `codex` in the repo root. Ask it to run `make init` then follow `AGENTS.md`. |
+| **GitHub Copilot (GHCP)** | Open the repo, run `make init`, then `python3 scripts/orchestrate.py emit --mode copilot`. Copilot follows `data/copilot_tasks.json`. |
+| **Copilot CLI** | `gh copilot` in the repo. After `make init`, emit `--mode copilot-cli` and execute tasks in order. |
+| **Microsoft scouting-style** | Emit `--mode microsoft-scouting`; consume `data/microsoft-scouting_tasks.json`. |
+| **Claw / Swarm** | Emit `--mode claw` or `--mode swarm`; coordinator dispatches roles under `agents/`. |
+
+Full per-agent instructions: **[AGENTS.md](AGENTS.md)**. Active topic contract (generated by `make init`): **`TOPIC_AGENTS.md`**.
+
+---
+
+## Scouting for papers or research topics
+
+The scout is topic-scoped. To change topics:
+
+```bash
+make reset          # clear the generated workspace
+make init           # define a new topic
+make scout          # discover
+```
+
+To keep the corpus fresh on an existing topic, just re-run `make scout` — it deduplicates against `data/papers.json` and appends candidates.
+
+---
+
+## Outputs
+
+| Artifact | Purpose |
+|---|---|
+| `topic.json` | Topic contract (source of truth) |
+| `TOPIC_AGENTS.md` | Generated topic-specific agent brief |
+| `agents/*.md` | Per-role briefs (coordinator, scout, reviewer, …) |
+| `data/candidates.json` | Ranked review queue |
+| `data/papers.json` | Accepted corpus + scout history |
+| `reports/research_report.md` | Synthesis |
+| `data/research_opportunities.json` | Evidence-backed gaps |
+| `topic-dashboard.html` | Interactive dashboard |
+| `data/{claw,swarm,copilot,copilot-cli,microsoft-scouting}_tasks.json` | Runtime manifests |
+
+Example workspace: `examples/ai-in-hiring-processes/`.
+
+---
+
+## Testing
+
+```bash
+make test
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
