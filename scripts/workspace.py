@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(os.environ.get("TOPIC_SCOUT_ROOT", Path(__file__).resolve().parents[1])).resolve()
 TOPIC_CONFIG = ROOT / "topic.json"
+TOPIC_AGENTS_PATH = ROOT / "TOPIC_AGENTS.md"
 DATA_DIR = ROOT / "data"
 REPORTS_DIR = ROOT / "reports"
 PAPERS_PATH = DATA_DIR / "papers.json"

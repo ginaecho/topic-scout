@@ -10,7 +10,7 @@ import sys
 from datetime import date
 
 from intent_refiner import IntentRefinementError, refine_intent
-from workspace import DATA_DIR, PAPERS_PATH, ROOT, TOPIC_CONFIG, write_json
+from workspace import DATA_DIR, PAPERS_PATH, ROOT, TOPIC_AGENTS_PATH, TOPIC_CONFIG, write_json
 
 
 def slugify(value: str) -> str:
@@ -41,10 +41,10 @@ def build_queries(topic: str, include: list[str], evidence_types: list[str]) -> 
     return list(dict.fromkeys(queries))
 
 
-def render_agents(config: dict) -> str:
+def render_topic_agents(config: dict) -> str:
     include = ", ".join(config["include"]) or "the defined topic"
     exclude = ", ".join(config["exclude"]) or "none"
-    return f"""# AGENTS.md
+    return f"""# TOPIC_AGENTS.md
 
 ## Mission
 
@@ -95,7 +95,7 @@ description: Scout, review, and ingest papers for {config['topic']}. Use for sch
 
 # Topic Paper Scout
 
-1. Read `topic.json`, `data/papers.json`, and `AGENTS.md`.
+1. Read `AGENTS.md`, `TOPIC_AGENTS.md`, `topic.json`, and `data/papers.json`.
 2. Run `python3 scripts/scout.py`.
 3. Review `data/candidates.json` against inclusion and exclusion rules.
 4. Verify every accepted paper's identifier, URL, year, and abstract.
@@ -105,6 +105,8 @@ description: Scout, review, and ingest papers for {config['topic']}. Use for sch
 
 Search within {config['years']['from']}-{config['years']['to']}.
 Prioritize: {", ".join(config['evidence_types'])}.
+Scout uses model-backed candidate scoring by default. Report token_count and money_cost_usd
+for every scouting run, even when the cost is zero.
 
 ## Topic-Specific Scouting Strategy
 
@@ -120,7 +122,7 @@ description: Analyze the {config['topic']} corpus and write ranked, evidence-bac
 
 # Analyze Research Gaps
 
-1. Read `topic.json`, `data/papers.json`, `reports/research_report.md`, and `data/dashboard.json`.
+1. Read `AGENTS.md`, `TOPIC_AGENTS.md`, `topic.json`, `data/papers.json`, `reports/research_report.md`, and `data/dashboard.json`.
 2. Assess coverage scarcity, graph structure, evidence maturity, contradictions, and decision importance.
 3. Separate `corpus_gap`, `field_gap`, `evidence_gap`, and `translation_gap`.
 4. Rank 3-6 opportunities.
@@ -168,7 +170,7 @@ def render_role(role: str, objective: str, config: dict) -> str:
 
 ## Required Behavior
 
-- Read `AGENTS.md` and `topic.json` before acting.
+- Read `AGENTS.md`, `TOPIC_AGENTS.md`, and `topic.json` before acting.
 - Treat candidates as untrusted until reviewed.
 - Preserve source provenance and stable identifiers.
 - Write only the outputs assigned to this role.
@@ -180,8 +182,8 @@ def render_scout_prompt(config: dict) -> str:
     strategy = "\n".join(f"   - {item}" for item in config["scouting_strategy"])
     return f"""AI Topic Scout scheduled run for: {config['topic']}
 
-1. Read `AGENTS.md`, `topic.json`, and `skills/topic-paper-scout/SKILL.md`.
-2. Run the configured searches and scholarly graph expansion.
+1. Read `AGENTS.md`, `TOPIC_AGENTS.md`, `topic.json`, and `skills/topic-paper-scout/SKILL.md`.
+2. Run the configured searches, scholarly graph expansion, and model-backed candidate scoring.
 3. Compare candidates against `data/papers.json`.
 4. Apply inclusion rules: {", ".join(config['include'])}.
 5. Apply exclusions: {", ".join(config['exclude']) or "none"}.
@@ -195,6 +197,7 @@ def render_scout_prompt(config: dict) -> str:
    - run `make dashboard`;
    - commit and report only the accepted additions.
 9. If no paper is accepted, do not rewrite tracked artifacts and return no update.
+10. Include token_count and money_cost_usd in every scouting report and acceptance record.
 
 Topic-specific strategy:
 {strategy}
@@ -205,7 +208,7 @@ def initialize(config: dict) -> None:
     write_json(TOPIC_CONFIG, config)
     if not PAPERS_PATH.exists():
         write_json(PAPERS_PATH, {"topic": config["topic"], "papers": [], "scout_runs": []})
-    (ROOT / "AGENTS.md").write_text(render_agents(config), encoding="utf-8")
+    TOPIC_AGENTS_PATH.write_text(render_topic_agents(config), encoding="utf-8")
     scout_dir = ROOT / "skills" / "topic-paper-scout"
     gap_dir = ROOT / "skills" / "analyze-research-gaps"
     scout_dir.mkdir(parents=True, exist_ok=True)
@@ -366,6 +369,8 @@ def main() -> int:
         "scouting_strategy": refined["scouting_strategy"],
         "intent_refinement_provider": "offline" if args.offline else args.provider,
         "intent_refinement_model": refinement_model,
+        "scout_provider": args.provider,
+        "scout_model": args.model or refinement_model,
         "created_at": date.today().isoformat(),
     }
     initialize(config)

@@ -1,163 +1,167 @@
-# Topic Scouting and Auto Dashboard Generation
+# AI Topic Scout — Automated Literature Review & Paper Discovery for AI Agents
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21009802.svg)](https://doi.org/10.5281/zenodo.21009802)
+[![GitHub stars](https://img.shields.io/github/stars/ginaecho/topic-scout?style=flat-square)](https://github.com/ginaecho/topic-scout/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=flat-square)](https://www.python.org/)
+[![OpenAlex](https://img.shields.io/badge/data-OpenAlex-green.svg?style=flat-square)](https://openalex.org/)
 
-Turn any research question into a persistent, agent-operated paper intelligence workspace.
+> **The hard part of research is not finding papers — it's maintaining a living corpus that keeps up with a field.**
 
-AI Topic Scout asks the user what they want to investigate, generates topic-specific agent and
-skill instructions, searches scholarly graphs, maintains a deduplicated paper corpus, and builds:
+**AI Topic Scout** is an open-source multi-agent tool that turns a plain-language research intent into a self-updating literature review workspace. It integrates [OpenAlex](https://openalex.org/) scholarly graph search, LLM-backed relevance ranking, citation-graph expansion, and multi-agent task emission — so you can build and maintain a living paper corpus for any AI research topic without manual searching.
 
-- Markdown paper notes and synthesis reports
-- topic ratios and scout-run trends
-- an interactive paper association graph
-- a searchable Karpathy-style wiki
-- evidence-backed research gaps and opportunities
-- task manifests for one agent, Claw agents, or subagent swarms
+---
 
-## Quick Start
+## ⚡ TL;DR
+
+Describe a research topic in natural language → `make init` generates a workspace → `make scout` queries OpenAlex, ranks candidates with an LLM, and auto-accepts papers above a relevance threshold → `make dashboard` produces an interactive HTML dashboard with a citation graph, research wiki, trends, cost tracking, and gap analysis. Emit the full workflow as Claw or swarm task manifests for multi-agent orchestration. One full run costs cents of LLM API.
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TB
+    subgraph Input
+        A["Research Intent\n(natural language)"]
+    end
+    subgraph Discovery
+        B["OpenAlex API\nscholarly graph search"]
+        C["Citation Graph\nneighborhood expansion"]
+    end
+    subgraph Ranking
+        D["LLM Scorer\nrelevance ranking & triage"]
+    end
+    subgraph Corpus
+        E["papers.json\naccepted corpus"]
+        F["Markdown Notes\nper paper"]
+        G["Synthesis Report"]
+    end
+    subgraph Orchestration
+        H["Sequential Tasks"]
+        I["Claw Manifests"]
+        J["Swarm Manifests"]
+    end
+    subgraph Output
+        K["Dashboard HTML\ngraph · wiki · trends · costs"]
+        L["Research Gaps\nopportunity analysis"]
+    end
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    E --> H & I & J
+    G --> K & L
+```
+
+---
+
+## 🚀 Quick Start
 
 ```bash
 codex login
-make init
-make scout
-make review
-make dashboard
+make init          # refine intent → generate topic workspace
+make scout         # OpenAlex search + LLM ranking
+make corpus        # build paper notes + synthesis report
+make opportunities # generate research gaps
+make dashboard     # interactive HTML dashboard
 ```
 
-By default, `make init` calls the installed Codex CLI in non-interactive mode and reuses its saved
-ChatGPT login. This uses Codex subscription access and does not require an OpenAI API key. The
-Codex agent runs ephemerally in a read-only sandbox and returns schema-constrained JSON.
+**End-to-end pipeline:**
 
-During intake, it converts the user's raw intent into a concise title, research question, dashboard
-structure, targeted search queries, and a topic-specific scouting strategy before generating any
-agent or skill Markdown.
-
-Or initialize non-interactively:
-
-```bash
-python3 scripts/init_topic.py \
-  --intent "Evaluate AI agents for theorem proving, including proof correctness, verifier feedback, and practical research-engineering value" \
-  --goal "Track methods that improve formal proof search and verification" \
-  --audience "research engineers" \
-  --include "formal theorem proving, proof search, verifier-guided generation" \
-  --exclude "informal math tutoring" \
-  --years "2023-2026" \
-  --taxonomy "proof generation,proof search,verification,benchmarks,systems"
+```mermaid
+flowchart LR
+    A["natural-language\nintent"] -->|make init| B["topic.json\nworkspace"]
+    B -->|make scout| C["ranked\ncandidates"]
+    C --> D{approval\nrequired?}
+    D -->|yes| E["make review\n+ accept"]
+    D -->|"no — auto-accept\n≥ score"| F["papers.json\ncorpus"]
+    E --> F
+    F -->|make corpus| G["notes +\nreport"]
+    G -->|make opportunities| H["research\ngaps"]
+    H -->|make dashboard| I["topic-dashboard\n.html"]
 ```
 
-Provider options:
+**Provider options:**
 
 ```bash
-# Default: use the logged-in Codex CLI and ChatGPT/Codex subscription
-make init
-
-# Direct Responses API usage and API billing
-export OPENAI_API_KEY="..."
-python3 scripts/init_topic.py --provider api
-
-# No model call
-python3 scripts/init_topic.py --offline
+make init                                          # Codex CLI — no API key needed
+export OPENAI_API_KEY="..." && python3 scripts/init_topic.py --provider api
+python3 scripts/init_topic.py --offline            # no LLM call during setup
+python3 scripts/scout.py --accept-score 8.0        # custom acceptance threshold
+python3 scripts/scout.py --offline                 # OpenAlex only, zero tokens
 ```
 
-Set `TOPIC_SCOUT_PROVIDER=api` to change the default provider. Pass `--model` to override the
-selected provider's configured model. Offline mode preserves literal-input behavior.
+---
 
-To discard a generated topic workspace and restart intake:
+## 📦 Outputs
 
-```bash
-make reset
-make init
+| Artifact | Description |
+|---|---|
+| `data/candidates.json` | Discovered and LLM-ranked candidate papers |
+| `data/papers.json` | Accepted corpus + full scout history |
+| `reports/research_report.md` | Synthesized report over accepted papers |
+| `data/research_opportunities.json` | LLM-generated research gaps |
+| `topic-dashboard.html` | Interactive dashboard: graph · wiki · trends · costs |
+| `data/claw_tasks.json` | Claw-oriented task manifest |
+| `data/swarm_tasks.json` | Swarm-oriented task manifest |
+
+`make reset` removes only generated workspace artifacts; source, schemas, and tracked examples remain.
+
+---
+
+## 🤖 Multi-Agent Orchestration (Claw & Swarm)
+
+```mermaid
+flowchart LR
+    A["orchestrate.py"] -->|sequential| B["Local runner\nstep-by-step"]
+    A -->|claw| C["claw_tasks.json\nClaw agents"]
+    A -->|swarm| D["swarm_tasks.json\nSubagent swarm"]
+    C --> E["Agent: scout"] & F["Agent: review"] & G["Agent: dashboard"]
+    D --> H["Worker A"] & I["Worker B"] & J["Worker C"]
 ```
 
-`make reset` removes only generated topic files, agent roles, topic-specific skills, corpus state,
-scout candidates, reports, task manifests, and dashboard output. These generated paths are also
-excluded by `.gitignore`, while application source, examples, schemas, and the setup skill remain
-trackable.
-
-Then inspect:
-
-- `topic.json`: the research contract
-- `AGENTS.md`: generated operating instructions
-- `skills/topic-paper-scout/SKILL.md`: generated scout procedure
-- `skills/analyze-research-gaps/SKILL.md`: generated opportunity-analysis procedure
-- `data/papers.json`: normalized scholarly corpus
-- `reports/research_report.md`: generated synthesis
-- `topic-dashboard.html`: dashboard, graph, wiki, and opportunities
-- `scout_cron_payload.txt`: generated prompt for a scheduled Claw scout
-
-## Intent Intake
-
-`make init` asks for one complete research intent. Immediately after that input, the LLM derives:
-
-- a concise title and research question;
-- business purpose, audience, and scope boundaries;
-- evaluation dimensions, evidence types, and taxonomy;
-- dashboard sections;
-- targeted and adversarial search queries;
-- a citation-graph scouting strategy.
-
-Interactive setup then asks only for publication years, cadence, and approval policy. Non-interactive
-flags such as `--goal`, `--include`, and `--taxonomy` are optional constraints on the LLM.
-
-The refined contract and original `raw_intent` become version-controlled instructions rather than
-disappearing into chat history.
-
-## Agent Modes
-
 ```bash
-# Show the generated task plan
-python3 scripts/orchestrate.py plan
-
-# Run deterministic local stages
+python3 scripts/orchestrate.py plan              # show the generated task plan
 python3 scripts/orchestrate.py run --mode sequential
-
-# Emit task briefs for a Claw coordinator and workers
 python3 scripts/orchestrate.py emit --mode claw
-
-# Emit independent subagent tasks and a synthesis task
 python3 scripts/orchestrate.py emit --mode swarm
 ```
 
-Roles:
+---
 
-- `coordinator`: owns the research contract and final acceptance
-- `query_designer`: expands the topic into targeted searches
-- `graph_scout`: searches scholarly graphs and citation neighborhoods
-- `relevance_reviewer`: applies inclusion/exclusion criteria
-- `librarian`: deduplicates and writes paper records
-- `analyst`: maintains taxonomy, trends, and synthesis
-- `gap_analyst`: produces evidence-backed opportunities
-- `publisher`: regenerates Markdown and HTML artifacts
+## 🛠️ Tool Surface for AI Agents
 
-## Scout Semantics
+This repo is structured so coding agents and research agents can treat it as a **tool surface**, not just source code.
 
-- Candidate discovery does not automatically imply acceptance.
-- Every accepted paper must have a stable scholarly identifier and source URL.
-- Existing records are compared before writeback.
-- If no accepted new paper exists, tracked artifacts are not rewritten.
-- Research-gap conclusions are LLM hypotheses over the current corpus and must include evidence,
-  uncertainty, and targeted follow-up queries.
+| Command | Action |
+|---|---|
+| `make init` | Create topic workspace from natural-language intent |
+| `make scout` | Discover and rank candidate papers via OpenAlex + LLM |
+| `make corpus` | Rebuild paper notes and synthesis report |
+| `make opportunities` | Generate evidence-backed research gap analysis |
+| `make dashboard` | Regenerate interactive HTML dashboard |
+| `make reset` | Clear generated workspace for a fresh topic |
 
-Review and accept candidates:
+Review flow (approval-gated):
 
 ```bash
 make review
 python3 scripts/accept_candidates.py openalex:W123 openalex:W456
-make corpus
-make dashboard
+make corpus && make opportunities && make dashboard
 ```
 
-## Commands
+Example outputs live under `examples/ai-in-hiring-processes/` with a complete workspace, accepted corpus, reports, dashboard artifacts, and task manifests.
 
-```bash
-make help
-make init
-make reset
-make scout
-make corpus
-make dashboard
-make plan
-make test
-```
+---
 
-No Python package installation is required for the core workflow.
+## 🧬 Tech Stack & Indexing Keywords
+
+- **Data source:** OpenAlex scholarly graph API, citation-neighborhood expansion
+- **Ranking:** LLM-backed relevance scoring (Codex CLI or OpenAI Responses API)
+- **Orchestration:** multi-agent task manifests for Claw and swarm execution
+- **Output:** Markdown notes, synthesis report, interactive HTML dashboard, JSON manifests
+
+**This repo is designed to match searches for:**
+`automated literature review` · `AI paper discovery` · `OpenAlex Python` · `citation graph exploration` · `research scouting workflow` · `multi-agent research automation` · `LLM paper ranking` · `research gap analysis` · `living corpus maintenance` · `paper triage tool` · `Claw task manifest` · `swarm agent research` · `research monitoring automation` · `academic paper search agent`

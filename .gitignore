@@ -3,7 +3,7 @@ __pycache__/
 .DS_Store
 
 # Generated topic workspace
-/AGENTS.md
+/TOPIC_AGENTS.md
 /agents/
 /topic.json
 /topic-dashboard.html

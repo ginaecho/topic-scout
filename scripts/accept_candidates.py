@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 
+from costs import zero_cost
 from workspace import CANDIDATES_PATH, PAPERS_PATH, load_json, load_topic, write_json
 
 
@@ -45,13 +46,26 @@ def main() -> int:
     if not accepted:
         print("No new papers accepted; corpus unchanged.")
         return 0
-    corpus["scout_runs"].append(
-        {
-            "date": timestamp[:10],
-            "queries": candidates.get("queries", []),
-            "accepted_ids": accepted,
-        }
-    )
+    scout_runs = corpus.setdefault("scout_runs", [])
+    if scout_runs and scout_runs[-1].get("accepted_ids", []) == []:
+        scout_runs[-1].update(
+            {
+                "accepted_ids": accepted,
+                "accepted_count": len(accepted),
+                "cost": candidates.get("cost", zero_cost()),
+            }
+        )
+    else:
+        scout_runs.append(
+            {
+                "date": timestamp[:10],
+                "queries": candidates.get("queries", []),
+                "accepted_ids": accepted,
+                "accepted_count": len(accepted),
+                "candidate_count": len(candidates.get("candidates", [])),
+                "cost": candidates.get("cost", zero_cost()),
+            }
+        )
     write_json(PAPERS_PATH, corpus)
     print(f"Accepted {len(accepted)} papers. Run `make corpus`.")
     return 0

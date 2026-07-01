@@ -77,7 +77,7 @@ def emit(mode: str, config: dict) -> dict:
         "mode": mode,
         "topic": config["topic"],
         "coordinator_instruction": (
-            "Read AGENTS.md and topic.json. Assign only accepted research-contract tasks. "
+            "Read AGENTS.md, TOPIC_AGENTS.md, and topic.json. Assign only accepted research-contract tasks. "
             "Do not publish when no new paper is accepted."
         ),
         "tasks": tasks(config),
@@ -105,6 +105,7 @@ def main() -> int:
         print("No accepted new papers; report and dashboard remain unchanged.")
         return 0
     subprocess.run([sys.executable, "scripts/build_corpus.py"], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, "scripts/analyze_research_gaps.py"], cwd=ROOT, check=True)
     subprocess.run([sys.executable, "scripts/build_dashboard.py"], cwd=ROOT, check=True)
     return 0
 

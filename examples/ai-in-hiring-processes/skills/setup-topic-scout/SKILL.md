@@ -33,7 +33,7 @@ The refined contract must contain:
 Verify that initialization creates:
 
 - `topic.json`
-- `TOPIC_AGENTS.md`
+- `AGENTS.md`
 - `agents/*.md`
 - `skills/topic-paper-scout/SKILL.md`
 - `skills/analyze-research-gaps/SKILL.md`

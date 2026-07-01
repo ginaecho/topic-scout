@@ -1,7 +1,7 @@
 PYTHON ?= python3
 QUERY ?=
 
-.PHONY: help init reset scout review corpus dashboard plan opportunities-check test
+.PHONY: help init reset scout review corpus opportunities dashboard plan opportunities-check test
 
 help:
 	@printf "%s\n" \
@@ -10,6 +10,7 @@ help:
 	"  make scout      Search scholarly graphs for candidate papers" \
 	"  make review     Print the candidate review queue" \
 	"  make corpus     Rebuild Markdown paper notes and report" \
+	"  make opportunities  Generate LLM-backed research opportunities" \
 	"  make dashboard  Build HTML dashboard, graph, wiki, and opportunities" \
 	"  make plan       Print the generated multi-agent task plan" \
 	"  make opportunities-check  Validate LLM opportunity JSON" \
@@ -19,7 +20,7 @@ init:
 	$(PYTHON) scripts/init_topic.py
 
 reset:
-	rm -rf AGENTS.md agents data/candidates.json data/dashboard.json \
+	rm -rf TOPIC_AGENTS.md agents data/candidates.json data/dashboard.json \
 		data/papers.json data/research_opportunities.json \
 		data/sequential_tasks.json data/claw_tasks.json data/swarm_tasks.json \
 		reports scout_cron_payload.txt skills/analyze-research-gaps \
@@ -35,7 +36,11 @@ corpus:
 	$(PYTHON) scripts/build_corpus.py
 
 dashboard:
+	$(PYTHON) scripts/analyze_research_gaps.py
 	$(PYTHON) scripts/build_dashboard.py
+
+opportunities:
+	$(PYTHON) scripts/analyze_research_gaps.py
 
 plan:
 	$(PYTHON) scripts/orchestrate.py plan

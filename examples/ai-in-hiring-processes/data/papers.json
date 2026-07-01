@@ -1,0 +1,312 @@
+{
+  "topic": "AI in Hiring Processes",
+  "papers": [
+    {
+      "id": "openalex:1",
+      "title": "Formal proof search",
+      "year": 2025,
+      "url": "https://example.com",
+      "doi": null,
+      "abstract": "Proof search with verifier feedback.",
+      "citation_count": 10,
+      "topics": [
+        "proof search"
+      ],
+      "discovered_via": [
+        "query:q"
+      ],
+      "relevance_score": 8.0,
+      "relevance_reason": "aligned",
+      "accepted_at": "2026-06-20T09:31:25.347504+00:00",
+      "primary_category": "Hiring stage: sourcing, matching, screening, assessment, interviewing, selection, communication",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4409825334",
+      "title": "Comparing chatbots to psychometric tests in hiring: reduced social desirability bias, but lower predictive validity",
+      "year": 2025,
+      "url": "https://doi.org/10.3389/fpsyg.2025.1564979",
+      "doi": "https://doi.org/10.3389/fpsyg.2025.1564979",
+      "abstract": "This paper explores the efficacy of AI-driven chatbots in accurately inferring personality traits compared to traditional psychometric tests within a real-world professional hiring context. The study is driven by the increasing integration of AI tools in recruitment processes, which necessitates a deeper understanding of their reliability and validity. Using a quasi-experimental design with propensity score matching, we analysed data from 159 candidates and other professionals from Serbian and Montenegrin regions who completed both traditional psychometric assessments and AI-based personality evaluations based on the Big Five Personality model. A novel one-question-per-facet approach was employed in the chatbot assessments with a goal of enabling more granular analysis of the chatbot's psychometric properties. The findings indicate that the chatbot demonstrated good structural, substantive, and convergent validity for certain traits, particularly Extraversion and Conscientiousness, but not for Neuroticism, Agreeableness, and Openness. While robust regression confirmed that AI-inferred scores are less susceptible to social desirability bias than traditional tests, they did not significantly predict real-world outcomes, indicating issues with external validity, particularly predictive validity. The results suggest that AI-driven chatbots show promise for identifying certain personality traits and demonstrate resistance to social desirability bias. This paper contributes to the emerging field of AI and psychometrics by offering insights into the potential and limitations of AI tools in professional selection, while developing an approach for refining psychometric properties of AI-driven assessments.",
+      "citation_count": 2,
+      "topics": [
+        "Personality Traits and Psychology",
+        "Employer Branding and e-HRM",
+        "AI in Service Interactions"
+      ],
+      "discovered_via": [
+        "query:AI hiring benchmark candidate screening job matching interview assessment predictive validity reliability"
+      ],
+      "relevance_score": 10.0,
+      "relevance_reason": "Direct hiring-context comparison of AI chatbot assessments and psychometric tests, with concrete evidence on validity, reliability, predictive performance, and social-desirability bias.",
+      "heuristic_relevance_score": 1.2,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=2; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Hiring stage: sourcing, matching, screening, assessment, interviewing, selection, communication",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4404228668",
+      "title": "Evaluating Inclusivity and Fairness of AI Recruitment Tools for Hiring People with Disabilities in the United Arab Emirates(UAE)",
+      "year": 2024,
+      "url": "https://doi.org/10.56294/dm2025487",
+      "doi": "https://doi.org/10.56294/dm2025487",
+      "abstract": "IntroductionThis research aims to explore the effectiveness and inclusivity of AI-powered recruitment tools in hiring people with disabilities within the United Arab Emirates. Such is the situation where AI integration into the arena of recruitment is increasingly rapid, while there are vital issues on the side of bias, accessibility, and fairness for applicants of diverse needs. MethodsThis study was a mixed-methods approach, examining sentiment analysis, emotion detection, and HR analytics of feedback from applicants with a disability, 415 in total. The research focused on scores referring to sentiment, the progression rate, and the outcome of the final hiring. ResultsThe sentiment score varied significantly across disability types (p-value &lt;0.05). The applicants with cognitive disability expressed the highest sentiment sore while applicants with hearing impairment had the lowest, which indicated the varying adaptability of AI. The emotion analysis depicted a mix of positive and negative emotions. A few applicants liked technology and have trust in it, while others report fear. Clearly, the applicants, both disabled and non-disabled did not differ in their rate of progression (p-value &gt;0.05), hence never indicating any significant difference within the initial steps of the process. The final hiring stage showed significant differences in results with (p-value &lt;0.05), where the proportionate number of disabled applicants was recorded to be lower than that of non-disabled applicants",
+      "citation_count": 110,
+      "topics": [
+        "Organizational and Employee Performance",
+        "AI in Service Interactions",
+        "Cyberloafing and Workplace Behavior"
+      ],
+      "discovered_via": [
+        "query:algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability"
+      ],
+      "relevance_score": 9.0,
+      "relevance_reason": "Direct mixed-methods evaluation of accessibility, fairness, applicant experience, progression, and hiring outcomes for disabled applicants using AI recruitment tools in the UAE.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Hiring stage: sourcing, matching, screening, assessment, interviewing, selection, communication",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4394590365",
+      "title": "Fairness, AI &amp; recruitment",
+      "year": 2024,
+      "url": "https://doi.org/10.1016/j.clsr.2024.105966",
+      "doi": "https://doi.org/10.1016/j.clsr.2024.105966",
+      "abstract": "The ever-increasing adoption of AI technologies in the hiring landscape to enhance human resources efficiency raises questions about algorithmic decision-making's implications in employment, especially for job applicants, including those at higher risk of social discrimination. Among other concepts, such as transparency and accountability, fairness has become crucial in AI recruitment debates due to the potential reproduction of bias and discrimination that can disproportionately affect certain vulnerable groups. However, the ideals and ambitions of fairness may signify different meanings to various stakeholders. Conceptualizing fairness is critical because it may provide a clear benchmark for evaluating and mitigating biases, ensuring that AI systems do not perpetuate existing imbalances and promote, in this case, equitable opportunities for all candidates in the job market. To this end, in this article, we conduct a scoping literature review on fairness in AI applications for recruitment and selection purposes, with special emphasis on its definition, categorization, and practical implementation. We start by explaining how AI applications have been increasingly used in the hiring process, especially to increase the efficiency of the HR team. We then move to the limitations of this technological innovation, which is known to be at high risk of privacy violations and social discrimination. Against this backdrop, we focus on defining and operationalizing fairness in AI applications for recruitment and selection purposes through cross-disciplinary lenses. Although the applicable legal frameworks and some research currently address the issue piecemeal, we observe and welcome the emergence of some cross-disciplinary efforts aimed at tackling this multifaceted challenge. We conclude the article with some brief recommendations to guide and shape future research and action on the fairness of AI applications in the hiring process for the better.",
+      "citation_count": 77,
+      "topics": [
+        "Employer Branding and e-HRM",
+        "Ethics and Social Impacts of AI",
+        "Names, Identity, and Discrimination Research"
+      ],
+      "discovered_via": [
+        "query:algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability"
+      ],
+      "relevance_score": 9.0,
+      "relevance_reason": "Direct scoping review of fairness definitions and implementation in AI recruitment and selection, including bias, vulnerable groups, privacy, transparency, accountability, and legal frameworks.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Evaluation dimension: utility, validity, reliability, efficiency, fairness, privacy, transparency, accessibility, security",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4386714740",
+      "title": "Ethics and discrimination in artificial intelligence-enabled recruitment practices",
+      "year": 2023,
+      "url": "https://doi.org/10.1057/s41599-023-02079-x",
+      "doi": "https://doi.org/10.1057/s41599-023-02079-x",
+      "abstract": "Abstract This study aims to address the research gap on algorithmic discrimination caused by AI-enabled recruitment and explore technical and managerial solutions. The primary research approach used is a literature review. The findings suggest that AI-enabled recruitment has the potential to enhance recruitment quality, increase efficiency, and reduce transactional work. However, algorithmic bias results in discriminatory hiring practices based on gender, race, color, and personality traits. The study indicates that algorithmic bias stems from limited raw data sets and biased algorithm designers. To mitigate this issue, it is recommended to implement technical measures, such as unbiased dataset frameworks and improved algorithmic transparency, as well as management measures like internal corporate ethical governance and external oversight. Employing Grounded Theory, the study conducted survey analysis to collect firsthand data on respondents\u2019 experiences and perceptions of AI-driven recruitment applications and discrimination.",
+      "citation_count": 351,
+      "topics": [
+        "Ethics and Social Impacts of AI",
+        "Employer Branding and e-HRM",
+        "AI and HR Technologies"
+      ],
+      "discovered_via": [
+        "query:artificial intelligence impact hiring recruitment sourcing screening assessment interviewing selection"
+      ],
+      "relevance_score": 8.0,
+      "relevance_reason": "Directly addresses AI recruitment efficiency, discriminatory outcomes, biased data and design, transparency, governance, and external oversight using review and survey evidence.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Stakeholder: applicant, recruiter, hiring manager, employer, vendor, regulator, auditor",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4391598857",
+      "title": "A Comprehensive Review of AI Techniques for Addressing Algorithmic Bias in Job Hiring",
+      "year": 2024,
+      "url": "https://doi.org/10.3390/ai5010019",
+      "doi": "https://doi.org/10.3390/ai5010019",
+      "abstract": "The study comprehensively reviews artificial intelligence (AI) techniques for addressing algorithmic bias in job hiring. More businesses are using AI in curriculum vitae (CV) screening. While the move improves efficiency in the recruitment process, it is vulnerable to biases, which have adverse effects on organizations and the broader society. This research aims to analyze case studies on AI hiring to demonstrate both successful implementations and instances of bias. It also seeks to evaluate the impact of algorithmic bias and the strategies to mitigate it. The basic design of the study entails undertaking a systematic review of existing literature and research studies that focus on artificial intelligence techniques employed to mitigate bias in hiring. The results demonstrate that the correction of the vector space and data augmentation are effective natural language processing (NLP) and deep learning techniques for mitigating algorithmic bias in hiring. The findings underscore the potential of artificial intelligence techniques in promoting fairness and diversity in the hiring process with the application of artificial intelligence techniques. The study contributes to human resource practice by enhancing hiring algorithms\u2019 fairness. It recommends the need for collaboration between machines and humans to enhance the fairness of the hiring process. The results can help AI developers make algorithmic changes needed to enhance fairness in AI-driven tools. This will enable the development of ethical hiring tools, contributing to fairness in society.",
+      "citation_count": 112,
+      "topics": [
+        "AI and HR Technologies",
+        "Artificial Intelligence in Healthcare and Education",
+        "AI in Service Interactions"
+      ],
+      "discovered_via": [
+        "query:algorithmic hiring employment discrimination automated decision systems law regulation audit privacy"
+      ],
+      "relevance_score": 8.0,
+      "relevance_reason": "Direct systematic review of bias and mitigation in AI-based CV screening, including efficiency, fairness techniques, case studies, and human\u2013machine collaboration.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Hiring stage: sourcing, matching, screening, assessment, interviewing, selection, communication",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4366989571",
+      "title": "Algorithmic inclusion: Shaping the predictive algorithms of artificial intelligence in hiring",
+      "year": 2023,
+      "url": "https://doi.org/10.1111/1748-8583.12511",
+      "doi": "https://doi.org/10.1111/1748-8583.12511",
+      "abstract": "Abstract Despite frequent claims that increased use of artificial intelligence (AI) in hiring will reduce the human bias that has long plagued recruitment and selection, AI may equally replicate and amplify such bias and embed it in technology. This article explores exclusion and inclusion in AI\u2010supported hiring, focusing on three interrelated areas: data, design and decisions. It is suggested that in terms of data, organisational fit, categorisations and intersectionality require consideration in relation to exclusion. As various stakeholders collaborate to create AI, it is essential to explore which groups are dominant and how subjective assessments are encoded in technology. Although AI\u2010supported hiring should enhance recruitment decisions, evidence is lacking on how humans and machines interact in decision\u2010making, and how algorithms can be audited and regulated effectively for inclusion. This article recommends areas for interrogation through further research, and contributes to understanding how algorithmic inclusion can be achieved in AI\u2010supported hiring.",
+      "citation_count": 79,
+      "topics": [
+        "Ethics and Social Impacts of AI",
+        "Employer Branding and e-HRM",
+        "Digital Economy and Work Transformation"
+      ],
+      "discovered_via": [
+        "query:algorithmic hiring employment discrimination automated decision systems law regulation audit privacy"
+      ],
+      "relevance_score": 8.0,
+      "relevance_reason": "Directly analyzes bias, inclusion, data, design, human\u2013AI decisions, auditing, and regulation in AI-supported hiring, though it mainly proposes research directions rather than outcome evidence.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Stakeholder: applicant, recruiter, hiring manager, employer, vendor, regulator, auditor",
+      "categories": [],
+      "notes": ""
+    },
+    {
+      "id": "openalex:W4390880618",
+      "title": "A UTAUT-Based Framework for Analyzing Users\u2019 Intention to Adopt Artificial Intelligence in Human Resource Recruitment: A Case Study of Thailand",
+      "year": 2024,
+      "url": "https://doi.org/10.3390/systems12010028",
+      "doi": "https://doi.org/10.3390/systems12010028",
+      "abstract": "Recruitment is a fundamental aspect of Human Resource Management to drive organizational performance. Traditional recruitment processes, with manual stages, are time-consuming and inefficient. Artificial Intelligence (AI), which demonstrates its potential in various sectors such as healthcare, education, and notable cases of ChatGPT, is currently reshaping recruitment by automating tasks to improve efficiency. However, in Thailand, where there is a growing demand for talents, the application of AI in recruitment remains relatively limited. This study focuses on human resources (HR) and recruitment professionals in Thailand, aiming to understand their perspectives on the integration of AI in recruitment. It utilized the Unified Theory for Acceptance and Use of Technology (UTAUT) model, customized to suit the specific requirements of Thailand recruitment practices. The study explores the factors influencing users\u2019 intention to adopt AI in recruitment. Survey questionnaire items were created based on prior literature and refined with insights from HR and recruitment experts to ensure applicability in the context of recruitment in Thailand. A survey involving 364 HR and recruiting professionals in the Bangkok metropolitan area supplied comprehensive responses. The study reveals that several factors, including perceived value, perceived autonomy, effort expectancy, and facilitating conditions, significantly impact the intention to adopt AI for recruitment. While social influence and trust in AI technology do not have a direct influence on intention, social influence directly affects perceived value. Trust in AI technology positively influences Effort Expectancy. This study provides valuable benefits for HR and recruitment professionals, organizations, and AI developers by offering insights into AI adoption and sustainability, enhancing recruitment processes and promoting the effective use of AI tools in this sector.",
+      "citation_count": 80,
+      "topics": [
+        "Employer Branding and e-HRM",
+        "AI and HR Technologies",
+        "Technology Adoption and User Behaviour"
+      ],
+      "discovered_via": [
+        "query:algorithmic hiring survey employers recruiters applicants adoption trust attitudes"
+      ],
+      "relevance_score": 7.0,
+      "relevance_reason": "Provides hiring-specific survey evidence from Thailand on recruiter adoption of AI, including value, autonomy, effort, facilitating conditions, and trust.",
+      "heuristic_relevance_score": 0.6,
+      "heuristic_relevance_reason": "include=none; topic-token-hits=1; exclude=none",
+      "accepted_at": "2026-06-20T09:55:51.437095+00:00",
+      "primary_category": "Governance control: documentation, consent, human review, appeal, audit, monitoring, incident response, vendor assurance",
+      "categories": [],
+      "notes": ""
+    }
+  ],
+  "scout_runs": [
+    {
+      "date": "2026-06-19",
+      "queries": [
+        "artificial intelligence impact hiring recruitment sourcing screening assessment interviewing selection",
+        "AI hiring benchmark candidate screening job matching interview assessment predictive validity reliability",
+        "AI recruitment system human in the loop recruiter decision support workflow architecture monitoring",
+        "algorithmic hiring employment discrimination automated decision systems law regulation audit privacy",
+        "AI recruiting business value time to hire cost per hire quality of hire recruiter productivity ROI",
+        "algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability",
+        "AI hiring adversarial gaming prompt injection resume manipulation deepfake interview fraud automation bias model drift",
+        "generative AI recruiting systems candidate communication job descriptions interview assistants",
+        "algorithmic hiring survey employers recruiters applicants adoption trust attitudes",
+        "AI hiring methods causal evaluation field experiment longitudinal quality of hire"
+      ],
+      "accepted_ids": [],
+      "accepted_count": 0,
+      "candidate_count": 540,
+      "cost": {
+        "provider": "openalex",
+        "token_count": 0,
+        "money_cost_usd": 0.0,
+        "currency": "USD",
+        "note": "OpenAlex discovery does not invoke a model; token usage is zero."
+      }
+    },
+    {
+      "date": "2026-06-19",
+      "queries": [
+        "artificial intelligence impact hiring recruitment sourcing screening assessment interviewing selection",
+        "AI hiring benchmark candidate screening job matching interview assessment predictive validity reliability",
+        "AI recruitment system human in the loop recruiter decision support workflow architecture monitoring",
+        "algorithmic hiring employment discrimination automated decision systems law regulation audit privacy",
+        "AI recruiting business value time to hire cost per hire quality of hire recruiter productivity ROI",
+        "algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability",
+        "AI hiring adversarial gaming prompt injection resume manipulation deepfake interview fraud automation bias model drift",
+        "generative AI recruiting systems candidate communication job descriptions interview assistants",
+        "algorithmic hiring survey employers recruiters applicants adoption trust attitudes",
+        "AI hiring methods causal evaluation field experiment longitudinal quality of hire"
+      ],
+      "accepted_ids": [],
+      "accepted_count": 0,
+      "candidate_count": 540,
+      "cost": {
+        "provider": "codex",
+        "model": "codex-cli:configured-model",
+        "token_count": 40597,
+        "input_tokens": 38704,
+        "output_tokens": 1849,
+        "reasoning_tokens": 44,
+        "money_cost_usd": 0.0,
+        "currency": "USD",
+        "note": "Codex CLI reports token usage but does not expose billable USD cost in this workflow."
+      }
+    },
+    {
+      "date": "2026-06-20",
+      "queries": [
+        "q"
+      ],
+      "accepted_ids": [
+        "openalex:1"
+      ],
+      "accepted_count": 1,
+      "candidate_count": 1,
+      "cost": {
+        "provider": "openalex",
+        "token_count": 0,
+        "money_cost_usd": 0.0,
+        "currency": "USD",
+        "note": "OpenAlex discovery does not invoke a model; token usage is zero."
+      }
+    },
+    {
+      "date": "2026-06-20",
+      "queries": [
+        "artificial intelligence impact hiring recruitment sourcing screening assessment interviewing selection",
+        "AI hiring benchmark candidate screening job matching interview assessment predictive validity reliability",
+        "AI recruitment system human in the loop recruiter decision support workflow architecture monitoring",
+        "algorithmic hiring employment discrimination automated decision systems law regulation audit privacy",
+        "AI recruiting business value time to hire cost per hire quality of hire recruiter productivity ROI",
+        "algorithmic hiring bias fairness adverse impact accessibility candidate experience explainability",
+        "AI hiring adversarial gaming prompt injection resume manipulation deepfake interview fraud automation bias model drift",
+        "generative AI recruiting systems candidate communication job descriptions interview assistants",
+        "algorithmic hiring survey employers recruiters applicants adoption trust attitudes",
+        "AI hiring methods causal evaluation field experiment longitudinal quality of hire"
+      ],
+      "accepted_ids": [
+        "openalex:W4409825334",
+        "openalex:W4404228668",
+        "openalex:W4394590365",
+        "openalex:W4386714740",
+        "openalex:W4391598857",
+        "openalex:W4366989571",
+        "openalex:W4390880618"
+      ],
+      "accepted_count": 7,
+      "candidate_count": 540,
+      "cost": {
+        "provider": "codex",
+        "model": "codex-cli:configured-model",
+        "token_count": 40624,
+        "input_tokens": 38704,
+        "output_tokens": 1876,
+        "reasoning_tokens": 44,
+        "money_cost_usd": 0.0,
+        "currency": "USD",
+        "note": "Codex CLI reports token usage but does not expose billable USD cost in this workflow."
+      }
+    }
+  ]
+}
