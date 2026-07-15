@@ -124,6 +124,30 @@ On the bundled 540-paper corpus, two findings stand out (see [`docs/metric-vs-ll
 
 **Takeaway baked into the design:** use the cheap metric as a high-recall prefilter/gate to eliminate the obvious, and spend LLM tokens only on the uncertainty band. Because the right weights are corpus-dependent, `make eval` is meant to be **re-run per topic** to calibrate — the harness is the deliverable, not any single number.
 
+### The prefilter gate (this is where the tokens are actually saved)
+
+`scout` applies that finding automatically: before any LLM call, it scores candidates with the cheap metric and **drops the obvious-off-topic tail**, sending only the survivors to the judge. On the 540-paper example this sends **55 papers to the LLM instead of 540 — ~90% fewer calls, with all 8 relevant papers retained.** Dropped candidates stay in `data/candidates.json` marked `relevance_verdict: "prefiltered"` (nothing is silently lost), and a `keep_min` floor stops the gate from ever emptying a sparse topic.
+
+It's on by default (`current` scorer, threshold `0.0` = "no positive topical evidence"). Control it per run or in `topic.json`:
+
+```bash
+make scout                                  # prefilter on by default
+python3 scripts/scout.py --no-prefilter     # judge every candidate (old behavior)
+python3 scripts/scout.py --prefilter-scorer hybrid --prefilter-score 3.2
+```
+
+```json
+"judging": { "prefilter": { "enabled": true, "scorer": "current", "threshold": 0.0, "keep_min": 5 } }
+```
+
+**Auto-derive the threshold from your own data.** After one full run (LLM judges everything once), let `make eval` compute the highest zero-recall-loss threshold and write it back into `topic.json`:
+
+```bash
+python3 scripts/eval_metric.py --recommend --scorer hybrid --write-topic topic.json
+```
+
+Subsequent scouts then prefilter with a threshold calibrated to *your* corpus — turning the one-time labeling cost into a permanent ~90% token discount.
+
 ---
 
 ## 🎨 The house style (what ships for free)

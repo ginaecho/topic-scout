@@ -25,6 +25,7 @@ from init_topic import build_queries, parse_years, slugify
 from intent_refiner import refine_intent, refine_intent_codex
 from paper_graph import Candidate, relevance
 import scout as scout_module
+from scout import select_for_llm
 import analyze_research_gaps as gaps_module
 import orchestrate as orchestrate_module
 from scout_llm import score_candidates_api, score_candidates_codex
@@ -75,6 +76,88 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(graph["nodes"]), 2)
         self.assertGreaterEqual(wiki["page_count"], 6)
         self.assertIn("overview", {page["id"] for page in wiki["pages"]})
+
+    def test_prefilter_gate_splits_pool_and_dropped(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": []}
+        # `current` recomputes the heuristic from text, so on-topic abstracts
+        # score > 0 and off-topic ones score 0.
+        cands = [
+            {"id": "a", "title": "Proof search A", "abstract": "formal proof search method", "topics": []},
+            {"id": "b", "title": "Proof search B", "abstract": "proof search benchmark", "topics": []},
+            {"id": "c", "title": "Cooking", "abstract": "bread recipe", "topics": []},
+            {"id": "d", "title": "Gardening", "abstract": "plant tomatoes", "topics": []},
+        ]
+        prefilter = {"enabled": True, "scorer": "current", "threshold": 0.0, "keep_min": 1}
+        pool, dropped, _ = select_for_llm(cands, config, prefilter, limit=10)
+        self.assertEqual({c["id"] for c in pool}, {"a", "b"})
+        self.assertEqual({c["id"] for c in dropped}, {"c", "d"})
+        # Disabled gate sends everything (up to the limit), nothing dropped.
+        off = select_for_llm(cands, config, {"enabled": False}, limit=10)
+        self.assertEqual(len(off[0]), 4)
+        self.assertEqual(off[1], [])
+
+    def test_scout_prefilter_reduces_llm_pool(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            papers_path = root / "data" / "papers.json"
+            candidates_path = root / "data" / "candidates.json"
+            papers_path.write_text(json.dumps({"papers": [], "scout_runs": []}), encoding="utf-8")
+            candidates_path.write_text(json.dumps({"candidates": []}), encoding="utf-8")
+            fake_topic = {
+                "topic": "AI theorem proving", "goal": "g", "audience": "a",
+                "include": ["proof search"], "exclude": [], "years": {"from": 2023, "to": 2026},
+                "taxonomy": ["proof search"], "evidence_types": ["methods"],
+                "approval_required": False, "scout_provider": "api",
+            }
+            # 6 on-topic (heuristic > 0) + 6 off-topic (heuristic 0); keep_min=5 so
+            # the 6 survivors clear the floor and the 6 zeros are truly dropped.
+            cands = []
+            for i in range(6):
+                cands.append({"id": f"y{i}", "title": "Proof search", "year": 2025,
+                              "url": "u", "doi": None, "abstract": "proof search method",
+                              "citation_count": 3, "topics": ["proof search"],
+                              "discovered_via": ["q"], "relevance_score": 2.6,
+                              "relevance_reason": "heuristic"})
+            for i in range(6):
+                cands.append({"id": f"n{i}", "title": "Cooking", "year": 2020,
+                              "url": "u", "doi": None, "abstract": "bread recipe",
+                              "citation_count": 0, "topics": [], "discovered_via": ["q"],
+                              "relevance_score": 0.0, "relevance_reason": "heuristic"})
+            fake_result = {"topic": "AI theorem proving", "queries": ["q"], "edges": [], "candidates": cands}
+            seen = {}
+
+            def fake_score(config, candidates, **kwargs):
+                seen["ids"] = [c["id"] for c in candidates]
+                return ({c["id"]: {"topical_fit": 0.9, "evidence_match": 0.9, "rigor": 0.8,
+                                   "exclusion_hit": False, "relevance_reason": "fit"}
+                         for c in candidates}, zero_cost())
+
+            def fake_load_json(path, default):
+                return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
+
+            def fake_write_json(path, payload):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+            with patch.object(scout_module, "discover", return_value=fake_result):
+                with patch.object(scout_module, "load_topic", return_value=fake_topic):
+                    with patch.object(scout_module, "score_candidates", side_effect=fake_score):
+                        with patch.object(scout_module, "load_json", side_effect=fake_load_json):
+                            with patch.object(scout_module, "write_json", side_effect=fake_write_json):
+                                with patch.object(scout_module, "PAPERS_PATH", papers_path):
+                                    with patch.object(scout_module, "CANDIDATES_PATH", candidates_path):
+                                        with patch.object(sys, "argv", ["scout.py"]):
+                                            self.assertEqual(scout_module.main(), 0)
+
+            # The LLM only saw the 6 on-topic candidates; the 6 zeros were prefiltered.
+            self.assertEqual(sorted(seen["ids"]), sorted(f"y{i}" for i in range(6)))
+            queue = json.loads(candidates_path.read_text())
+            verdicts = {c["id"]: c.get("relevance_verdict") for c in queue["candidates"]}
+            self.assertTrue(all(verdicts[f"n{i}"] == "prefiltered" for i in range(6)))
+            # The judged on-topic candidates carry a real verdict, not "prefiltered".
+            self.assertTrue(all(verdicts[f"y{i}"] in {"accept", "uncertain", "reject"} for i in range(6)))
+            self.assertEqual(json.loads(papers_path.read_text())["scout_runs"][0]["prefiltered_count"], 6)
 
     def test_eval_metric_rank_statistics(self):
         self.assertAlmostEqual(spearman([1, 2, 3, 4], [1, 2, 3, 4]), 1.0)

@@ -25,6 +25,16 @@ DEFAULT_JUDGING = {
     "min_confidence": 0.35,
     # Divisor that squashes the unbounded heuristic score into [0, 1].
     "heuristic_scale": 6.0,
+    # Cheap pre-LLM gate: drop candidates whose deterministic score is at or
+    # below `threshold` before spending any LLM tokens. `threshold: 0.0` on the
+    # default `current` scorer drops candidates with no positive topical
+    # evidence — empirically a zero-recall-loss cut (see docs/metric-vs-llm-eval.md).
+    "prefilter": {
+        "enabled": True,
+        "scorer": "current",
+        "threshold": 0.0,
+        "keep_min": 5,
+    },
 }
 
 
@@ -70,6 +80,20 @@ def resolve_judging(config: dict, *, accept_hi: float | None = None) -> dict:
         except (KeyError, TypeError, ValueError):
             return float(DEFAULT_JUDGING[key])
 
+    prefilter_in = block.get("prefilter") or {}
+    prefilter = {**DEFAULT_JUDGING["prefilter"]}
+    if "enabled" in prefilter_in:
+        prefilter["enabled"] = bool(prefilter_in["enabled"])
+    if prefilter_in.get("scorer"):
+        prefilter["scorer"] = str(prefilter_in["scorer"])
+    for key in ("threshold", "keep_min"):
+        if key in prefilter_in:
+            try:
+                prefilter[key] = float(prefilter_in[key])
+            except (TypeError, ValueError):
+                pass
+    prefilter["keep_min"] = max(0, int(prefilter["keep_min"]))
+
     resolved = {
         "weights": weights,
         "recency": recency,
@@ -77,6 +101,7 @@ def resolve_judging(config: dict, *, accept_hi: float | None = None) -> dict:
         "accept_lo": _number("accept_lo"),
         "min_confidence": _clamp(_number("min_confidence")),
         "heuristic_scale": max(1e-6, _number("heuristic_scale")),
+        "prefilter": prefilter,
     }
     if accept_hi is not None:
         resolved["accept_hi"] = float(accept_hi)

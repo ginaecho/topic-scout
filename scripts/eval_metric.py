@@ -322,6 +322,28 @@ def build_context(papers: list[dict], config: dict) -> dict:
     return ctx
 
 
+def cheap_scores(papers: list[dict], config: dict, scorer_name: str = "current") -> dict:
+    """Compute a token-free deterministic score per candidate id.
+
+    ``current`` reuses the heuristic already attached during discovery; other
+    scorers (``hybrid``, ``tfidf_cosine``, ``bm25`` …) are computed on the fly
+    over the candidate set. Used by the scout prefilter gate.
+    """
+    if scorer_name in (None, "heuristic"):
+        scorer_name = "current"
+    scorer = SCORERS.get(scorer_name)
+    if scorer is None:
+        raise ValueError(f"Unknown prefilter scorer: {scorer_name}")
+    # Recompute the deterministic score from raw fields (never trust a stored
+    # relevance_score, which may already hold an LLM verdict on a re-scored file).
+    ctx = build_context(papers, config)
+    out = {}
+    for paper in papers:
+        title, body = paper_text(paper)
+        out[paper["id"]] = scorer(paper, config, {**ctx, "title": title, "body": body})
+    return out
+
+
 def routing_analysis(labeled: list[dict], config: dict, scorer_name: str = "current") -> dict:
     """How much LLM work a cheap prefilter can save at zero recall loss.
 
@@ -476,6 +498,13 @@ def main() -> int:
     parser.add_argument("--topic", help="topic.json contract for the dataset")
     parser.add_argument("--report", help="write the markdown report to this path")
     parser.add_argument("--json", action="store_true", help="print the raw metrics as JSON")
+    parser.add_argument(
+        "--recommend",
+        action="store_true",
+        help="Print a judging.prefilter block with an auto-derived zero-recall-loss threshold",
+    )
+    parser.add_argument("--scorer", help="Prefilter scorer to tune (default: highest AUC)")
+    parser.add_argument("--write-topic", help="Write the recommended prefilter block into this topic.json")
     args = parser.parse_args()
 
     input_path = Path(args.input) if args.input else EXAMPLE_DIR / "data" / "candidates.json"
@@ -489,6 +518,38 @@ def main() -> int:
 
     if args.json:
         print(json.dumps(summary, indent=2))
+
+    if args.recommend or args.write_topic:
+        metrics = summary["metrics"]
+        scorer = args.scorer or max(
+            metrics, key=lambda n: metrics[n]["auc"] if metrics[n]["auc"] == metrics[n]["auc"] else -1.0
+        )
+        labeled = [p for p in papers if p.get("relevance_score") is not None]
+        route = routing_analysis(labeled, config, scorer)
+        threshold = route["auto_drop_threshold"]
+        block = {
+            "enabled": threshold is not None,
+            "scorer": scorer,
+            "threshold": threshold if threshold is not None else 0.0,
+        }
+        print("Recommended judging.prefilter (auto-derived, zero recall loss):")
+        print(json.dumps(block, indent=2))
+        if threshold is not None:
+            print(
+                f"→ drops {route['auto_dropped']}/{route['candidates']} candidates before the LLM "
+                f"(~{route['token_saving'] * 100:.0f}% fewer LLM calls), keeping all "
+                f"{route['relevant']} relevant papers."
+            )
+        else:
+            print("→ no zero-recall-loss threshold found for this scorer; prefilter left disabled.")
+        if args.write_topic:
+            topic_out = Path(args.write_topic)
+            topic_cfg = json.loads(topic_out.read_text(encoding="utf-8"))
+            topic_cfg.setdefault("judging", {})["prefilter"] = block
+            topic_out.write_text(json.dumps(topic_cfg, indent=2) + "\n", encoding="utf-8")
+            print(f"Wrote judging.prefilter into {topic_out}")
+        return 0
+
     try:
         source = str(input_path.resolve().relative_to(ROOT))
     except ValueError:

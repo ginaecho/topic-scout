@@ -9,12 +9,38 @@ from urllib.error import HTTPError, URLError
 from datetime import datetime, timezone
 
 from costs import zero_cost
+from eval_metric import cheap_scores
 from judging import aggregate, resolve_judging
 from paper_graph import discover
 from scout_llm import ScoutModelError, score_candidates
 from workspace import CANDIDATES_PATH, PAPERS_PATH, load_json, load_topic, write_json
 
 DEFAULT_ACCEPT_SCORE = 7.0
+
+
+def select_for_llm(candidates, config, prefilter, limit):
+    """Rank candidates by a cheap score and split into (pool, prefiltered).
+
+    ``pool`` is sent to the LLM; ``prefiltered`` is the below-threshold,
+    obviously-off-topic tail that is dropped *before* any LLM call — the token
+    saving. Candidates above the threshold but beyond ``limit`` are left as-is
+    (heuristic only), matching the prior over-cap behaviour. A ``keep_min``
+    floor guarantees the run never empties out on a sparse topic.
+    """
+    scores = cheap_scores(candidates, config, prefilter.get("scorer", "current"))
+    ranked = sorted(candidates, key=lambda c: -scores.get(c["id"], 0.0))
+    if not prefilter.get("enabled", True):
+        return ranked[:limit], [], scores
+    threshold = prefilter.get("threshold", 0.0)
+    above = [c for c in ranked if scores.get(c["id"], 0.0) > threshold]
+    below = [c for c in ranked if scores.get(c["id"], 0.0) <= threshold]
+    keep_min = int(prefilter.get("keep_min", 0) or 0)
+    if len(above) < keep_min:  # rescue the best of the tail so the run isn't empty
+        rescued = ranked[:keep_min]
+        rescued_ids = {c["id"] for c in rescued}
+        above = rescued
+        below = [c for c in ranked if c["id"] not in rescued_ids]
+    return above[:limit], below, scores
 
 
 def main() -> int:
@@ -45,6 +71,22 @@ def main() -> int:
         action="store_true",
         help="Skip model-backed scout scoring and keep OpenAlex-only heuristic ranking",
     )
+    prefilter_group = parser.add_mutually_exclusive_group()
+    prefilter_group.add_argument(
+        "--prefilter",
+        dest="prefilter",
+        action="store_true",
+        default=None,
+        help="Drop obviously-off-topic candidates with a cheap score before LLM judging",
+    )
+    prefilter_group.add_argument(
+        "--no-prefilter",
+        dest="prefilter",
+        action="store_false",
+        help="Send every discovered candidate to the LLM (disable the cheap gate)",
+    )
+    parser.add_argument("--prefilter-score", type=float, help="Prefilter drop threshold override")
+    parser.add_argument("--prefilter-scorer", help="Prefilter scorer override (current, hybrid, tfidf_cosine, bm25)")
     args = parser.parse_args()
     config = load_topic()
     accept_score = args.accept_score
@@ -103,7 +145,18 @@ def main() -> int:
             print("Scout cost: 0 tokens, $0.00 USD.")
             print("topic.json requested the legacy OpenAlex-only scout path; rerun with --provider codex or --provider api to require an LLM.")
             return 0
-        llm_candidates = result["candidates"][: max(0, args.llm_candidates)]
+        judging = resolve_judging(config, accept_hi=args.accept_score)
+        prefilter = dict(judging["prefilter"])
+        if args.prefilter is not None:
+            prefilter["enabled"] = args.prefilter
+        if args.prefilter_score is not None:
+            prefilter["threshold"] = args.prefilter_score
+        if args.prefilter_scorer:
+            prefilter["scorer"] = args.prefilter_scorer
+        llm_candidates, prefiltered, cheap = select_for_llm(
+            result["candidates"], config, prefilter, max(0, args.llm_candidates)
+        )
+        result["prefiltered_count"] = len(prefiltered)
         try:
             updates, usage = score_candidates(
                 config,
@@ -113,7 +166,6 @@ def main() -> int:
             )
         except ScoutModelError as exc:
             raise SystemExit(f"Scout scoring failed: {exc}")
-        judging = resolve_judging(config, accept_hi=args.accept_score)
         reference_year = (config.get("years") or {}).get("to") or int(result["generated_at"][:4])
         for candidate in result["candidates"]:
             # Preserve the independent keyword heuristic before the judge's
@@ -136,6 +188,17 @@ def main() -> int:
                     key: rubric[key]
                     for key in ("topical_fit", "evidence_match", "rigor", "exclusion_hit")
                 }
+        # Mark the cheap-dropped tail (after heuristic fields are preserved) so
+        # nothing is silently lost and it never auto-accepts.
+        prefiltered_ids = {candidate["id"] for candidate in prefiltered}
+        for candidate in result["candidates"]:
+            if candidate["id"] in prefiltered_ids:
+                candidate["relevance_verdict"] = "prefiltered"
+                candidate["relevance_reason"] = (
+                    f"Cheap {prefilter.get('scorer', 'current')} score "
+                    f"{cheap.get(candidate['id'], 0.0):.2f} <= prefilter threshold "
+                    f"{prefilter.get('threshold', 0.0)}; not LLM-judged."
+                )
         result["candidates"].sort(
             key=lambda item: (
                 -item.get("relevance_score", 0),
@@ -158,6 +221,7 @@ def main() -> int:
         "accepted_ids": [],
         "accepted_count": 0,
         "candidate_count": len(result["candidates"]),
+        "prefiltered_count": result.get("prefiltered_count", 0),
         "cost": result["cost"],
     }
     existing.setdefault("scout_runs", []).append(scout_run)
@@ -197,6 +261,15 @@ def main() -> int:
         f"Discovered {len(result['candidates'])} candidates "
         f"({result['new_candidate_count']} not in corpus)."
     )
+    prefiltered_count = result.get("prefiltered_count", 0)
+    if prefiltered_count:
+        total = len(result["candidates"])
+        judged = total - prefiltered_count
+        saving = 100 * prefiltered_count / total if total else 0
+        print(
+            f"Prefilter dropped {prefiltered_count}/{total} obvious-off-topic candidates "
+            f"before LLM scoring ({judged} judged, ~{saving:.0f}% fewer LLM calls)."
+        )
     if discovery_error:
         print(f"OpenAlex discovery failed; wrote an empty candidate queue. {discovery_error}")
     uncertain = [

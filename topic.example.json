@@ -48,7 +48,13 @@
     },
     "accept_hi": 7.0,
     "accept_lo": 4.0,
-    "min_confidence": 0.35
+    "min_confidence": 0.35,
+    "prefilter": {
+      "enabled": true,
+      "scorer": "current",
+      "threshold": 0.0,
+      "keep_min": 5
+    }
   },
   "theme": {
     "palette": {
