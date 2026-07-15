@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from build_corpus import classify
-from build_dashboard import graph_data, wiki_data
+from build_dashboard import DEFAULT_THEME, graph_data, resolve_theme, root_css, wiki_data
 from costs import usage_cost, zero_cost
 from init_topic import build_queries, parse_years, slugify
 from intent_refiner import refine_intent, refine_intent_codex
@@ -67,6 +67,84 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(graph["nodes"]), 2)
         self.assertGreaterEqual(wiki["page_count"], 6)
         self.assertIn("overview", {page["id"] for page in wiki["pages"]})
+
+    def test_resolve_theme_merges_partial_override_over_defaults(self):
+        theme = resolve_theme(
+            {
+                "theme": {
+                    "palette": {"accent": "#ff2e88"},
+                    "fonts": {"body": "Inter, sans-serif"},
+                    "category_colors": ["#ff2e88", "#22d3ee"],
+                }
+            }
+        )
+        # Overridden values win.
+        self.assertEqual(theme["palette"]["accent"], "#ff2e88")
+        self.assertEqual(theme["fonts"]["body"], "Inter, sans-serif")
+        self.assertEqual(theme["category_colors"], ["#ff2e88", "#22d3ee"])
+        # Unspecified values fall back to the defaults.
+        self.assertEqual(theme["palette"]["ink"], DEFAULT_THEME["palette"]["ink"])
+        self.assertEqual(theme["fonts"]["display"], DEFAULT_THEME["fonts"]["display"])
+
+    def test_resolve_theme_defaults_when_absent_or_malformed(self):
+        self.assertEqual(resolve_theme({}), resolve_theme({"theme": {}}))
+        # A malformed category_colors value silently falls back.
+        theme = resolve_theme({"theme": {"category_colors": "not-a-list"}})
+        self.assertEqual(theme["category_colors"], DEFAULT_THEME["category_colors"])
+        root = root_css(theme)
+        self.assertTrue(root.startswith(":root{"))
+        self.assertIn("--accent:", root)
+        self.assertIn("--font-display:", root)
+
+    def test_dashboard_applies_theme_palette_and_fonts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            (root / "reports").mkdir(parents=True, exist_ok=True)
+            (root / "topic.json").write_text(
+                json.dumps(
+                    {
+                        "topic": "Themed Topic",
+                        "goal": "Verify theming",
+                        "audience": "devs",
+                        "taxonomy": ["alpha", "beta"],
+                        "include": ["x"],
+                        "exclude": [],
+                        "years": {"from": 2023, "to": 2026},
+                        "theme": {
+                            "palette": {"ink": "#0b1021", "accent": "#ff2e88"},
+                            "fonts": {"body": "Inter, system-ui, sans-serif"},
+                            "category_colors": ["#ff2e88", "#22d3ee"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "papers.json").write_text(
+                json.dumps({"papers": [], "scout_runs": []}), encoding="utf-8"
+            )
+            (root / "data" / "candidates.json").write_text(
+                json.dumps({"candidates": [], "generated_at": None, "cost": {}}),
+                encoding="utf-8",
+            )
+            env = dict(os.environ, TOPIC_SCOUT_ROOT=directory)
+            subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_dashboard.py")],
+                check=True,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            html = (root / "topic-dashboard.html").read_text(encoding="utf-8")
+            self.assertIn("--ink:#0b1021", html)
+            self.assertIn("--accent:#ff2e88", html)
+            self.assertIn("--font-body:Inter, system-ui, sans-serif", html)
+            # Unspecified palette entries keep their defaults.
+            self.assertIn(f"--muted:{DEFAULT_THEME['palette']['muted']}", html)
+            # Category colors flow into the embedded payload.
+            payload = json.loads((root / "data" / "dashboard.json").read_text())
+            self.assertEqual(payload["categories"][0]["color"], "#ff2e88")
+            self.assertEqual(payload["categories"][1]["color"], "#22d3ee")
 
     def test_noninteractive_initialization_generates_agent_workspace(self):
         with tempfile.TemporaryDirectory() as directory:

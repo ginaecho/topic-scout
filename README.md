@@ -84,6 +84,33 @@ The generated `topic-dashboard.html` is a single, dependency-free file styled as
 
 Alongside it: `reports/research_report.md` (synthesis) and `reports/papers/*.md` (one consistent note per paper). You do not design any of this. It is the same, every topic, every run.
 
+### Theming — make it yours without touching code
+
+The dashboard reads an optional `theme` block from `topic.json`, so a topic can carry its own palette and typography. Every key is optional and falls back to the default broadsheet look, so you can override just an accent color or go fully dark:
+
+```json
+"theme": {
+  "palette": {
+    "ink": "#e8ecf8", "paper": "#0e1430", "panel": "#161d3d",
+    "line": "#2a355e", "muted": "#93a0c8",
+    "accent": "#ff2e88", "accent2": "#22d3ee"
+  },
+  "fonts": {
+    "display": "\"Playfair Display\", Georgia, serif",
+    "body": "\"Inter\", system-ui, sans-serif"
+  },
+  "category_colors": ["#ff2e88", "#22d3ee", "#f5c542", "#a78bfa"]
+}
+```
+
+*(That example is a full dark theme; the snippet above renders as shown below.)*
+
+- **`palette`** — `ink` (**text color** + top rule), `paper` (page background), `panel` (cards / metric cells), `line` (borders, bar tracks, gridlines), `muted` (secondary text), `accent` / `accent2` (ranking highlights). For a dark theme, set `paper`/`panel`/`line` dark **and** `ink` light (it's the text). The citation-graph module stays a dark inset by design in every theme.
+- **`fonts`** — `display` (headings) and `body` (everything else). Any CSS `font-family` stack; use web-safe fonts to keep the file self-contained.
+- **`category_colors`** — the series palette used for taxonomy bars, the trend chart, and the citation graph.
+
+Every key is optional and falls back to the default; the default (broadsheet) look is unchanged if you omit the `theme` block entirely. Then just `make dashboard` — fonts and palette are pure CSS variables, so nothing else in your workflow changes.
+
 ---
 
 ## 🚀 Quick start
@@ -175,8 +202,8 @@ Worked example: [`examples/ai-in-hiring-processes/`](examples/ai-in-hiring-proce
 
 The template is the product, so the roadmap is mostly **more of it**:
 
-- **A template gallery** — pick a look at publish time: the current broadsheet, a minimal-report theme, a slide-deck export (à la EvaPaper's PPTX), a print/PDF layout, a dark dashboard.
-- **Theming knobs** in `topic.json` (palette, typography, sections) so a topic can carry its own identity without touching code.
+- **Theming knobs** in `topic.json` (palette, typography, category colors) so a topic can carry its own identity without touching code — ✅ **shipped** (see [Theming](#theming--make-it-yours-without-touching-code)).
+- **A template gallery** — pick a *layout* at publish time (not just colors): the current broadsheet, a minimal-report theme, a slide-deck export (à la EvaPaper's PPTX), a print/PDF layout.
 - **Scheduled scouting** — a cron cadence that keeps a corpus fresh and commits the diff, so the dashboard is always current.
 - **More discovery signals** beyond OpenAlex (e.g. optional Semantic Scholar recommendations) behind the same contract.
 

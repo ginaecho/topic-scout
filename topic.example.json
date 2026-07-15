@@ -35,5 +35,21 @@
     "LLM verifier guided proof generation",
     "neural theorem proving benchmark"
   ],
+  "theme": {
+    "palette": {
+      "ink": "#17201f",
+      "paper": "#f3efe4",
+      "panel": "#fffdf6",
+      "line": "#c9c1b1",
+      "muted": "#706c63",
+      "accent": "#e4572e",
+      "accent2": "#1d6f75"
+    },
+    "fonts": {
+      "display": "Georgia, serif",
+      "body": "\"Avenir Next\", \"Gill Sans\", sans-serif"
+    },
+    "category_colors": ["#e4572e", "#1d6f75", "#f3a712", "#963484", "#4267ac", "#5b8e3e", "#7b6045"]
+  },
   "created_at": "2026-06-12"
 }

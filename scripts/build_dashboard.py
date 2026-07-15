@@ -20,7 +20,57 @@ from workspace import (
 )
 
 
-COLORS = ["#e4572e", "#1d6f75", "#f3a712", "#963484", "#4267ac", "#5b8e3e", "#7b6045"]
+DEFAULT_THEME = {
+    "palette": {
+        "ink": "#17201f",
+        "paper": "#f3efe4",
+        "panel": "#fffdf6",
+        "line": "#c9c1b1",
+        "muted": "#706c63",
+        "accent": "#e4572e",
+        "accent2": "#1d6f75",
+    },
+    "fonts": {
+        "display": "Georgia, serif",
+        "body": '"Avenir Next", "Gill Sans", sans-serif',
+    },
+    "category_colors": ["#e4572e", "#1d6f75", "#f3a712", "#963484", "#4267ac", "#5b8e3e", "#7b6045"],
+}
+
+# Backwards-compatible default category palette.
+COLORS = DEFAULT_THEME["category_colors"]
+
+
+def resolve_theme(config: dict) -> dict:
+    """Merge an optional ``theme`` block from topic.json over the defaults.
+
+    Unknown or malformed values fall back to the default, so a partial
+    ``theme`` (e.g. only ``palette.accent``) is always safe.
+    """
+    theme = config.get("theme") or {}
+    palette = {**DEFAULT_THEME["palette"], **(theme.get("palette") or {})}
+    fonts = {**DEFAULT_THEME["fonts"], **(theme.get("fonts") or {})}
+    category_colors = theme.get("category_colors")
+    if not isinstance(category_colors, list) or not category_colors:
+        category_colors = DEFAULT_THEME["category_colors"]
+    return {"palette": palette, "fonts": fonts, "category_colors": list(category_colors)}
+
+
+def root_css(theme: dict) -> str:
+    """Render the theme as a CSS custom-property block for :root."""
+    palette, fonts = theme["palette"], theme["fonts"]
+    variables = [
+        f"--ink:{palette['ink']}",
+        f"--paper:{palette['paper']}",
+        f"--panel:{palette['panel']}",
+        f"--line:{palette['line']}",
+        f"--muted:{palette['muted']}",
+        f"--accent:{palette['accent']}",
+        f"--accent2:{palette['accent2']}",
+        f"--font-display:{fonts['display']}",
+        f"--font-body:{fonts['body']}",
+    ]
+    return ":root{" + ";".join(variables) + "}"
 
 
 def terms(paper: dict) -> set[str]:
@@ -167,6 +217,8 @@ def wiki_data(config: dict, papers: list[dict], graph: dict, candidates: list[di
 
 def build_data() -> dict:
     config = load_topic()
+    theme = resolve_theme(config)
+    category_colors = theme["category_colors"]
     corpus = load_json(PAPERS_PATH, {"papers": [], "scout_runs": []})
     candidates_payload = load_json(CANDIDATES_PATH, {"candidates": [], "generated_at": None, "cost": {}})
     papers = corpus["papers"]
@@ -178,7 +230,7 @@ def build_data() -> dict:
             "label": category.title(),
             "count": 0,
             "ratio": 0,
-            "color": COLORS[index % len(COLORS)],
+            "color": category_colors[index % len(category_colors)],
         }
         for index, category in enumerate(config["taxonomy"])
     ]
@@ -276,25 +328,25 @@ HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__TITLE__ · AI Topic Scout</title>
 <style>
-:root{--ink:#17201f;--paper:#f3efe4;--panel:#fffdf6;--line:#c9c1b1;--muted:#706c63}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Avenir Next","Gill Sans",sans-serif}
+__ROOT__
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body)}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.25;background-image:radial-gradient(#817b70 .55px,transparent .55px);background-size:7px 7px}
 main{position:relative;width:min(1480px,calc(100% - 30px));margin:auto;padding:34px 0 70px}
 header{border-top:8px solid var(--ink);padding-top:18px}.eyebrow{text-transform:uppercase;letter-spacing:.15em;font-size:10px;font-weight:800}
-h1{font:700 clamp(42px,7vw,92px)/.9 Georgia,serif;letter-spacing:-.055em;margin:8px 0}.subtitle{max-width:850px;color:var(--muted);font-size:17px}
-.metrics{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}.metric{background:var(--panel);padding:17px}.metric b{display:block;font:700 35px Georgia,serif;margin-top:14px}
-.grid{display:grid;grid-template-columns:1fr 1.4fr;gap:17px}.panel{background:rgba(255,253,246,.94);border:1px solid var(--line);padding:20px;min-width:0}.wide{grid-column:1/-1}.panel h2{font:700 26px Georgia,serif;margin:5px 0 16px}
+h1{font:700 clamp(42px,7vw,92px)/.9 var(--font-display);letter-spacing:-.055em;margin:8px 0}.subtitle{max-width:850px;color:var(--muted);font-size:17px}
+.metrics{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}.metric{background:var(--panel);padding:17px}.metric b{display:block;font:700 35px var(--font-display);margin-top:14px}
+.grid{display:grid;grid-template-columns:1fr 1.4fr;gap:17px}.panel{background:var(--panel);border:1px solid var(--line);padding:20px;min-width:0}.wide{grid-column:1/-1}.panel h2{font:700 26px var(--font-display);margin:5px 0 16px}
 .framing{display:grid;grid-template-columns:1.4fr 1fr;gap:24px}.framing ul{columns:2;padding-left:18px}.framing li{margin-bottom:7px}
-.barrow{display:grid;grid-template-columns:1fr 2fr 84px;gap:9px;align-items:center;margin:12px 0}.bar{height:12px;background:#ded8ca}.bar i{display:block;height:100%;background:var(--c);width:var(--w)}
+.barrow{display:grid;grid-template-columns:1fr 2fr 84px;gap:9px;align-items:center;margin:12px 0}.bar{height:12px;background:var(--line)}.bar i{display:block;height:100%;background:var(--c);width:var(--w)}
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:4px 0 14px;font-size:12px}.legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:6px;background:var(--c)}
-svg{width:100%;height:auto;overflow:visible}.axis{stroke:#bcb4a4;stroke-width:1}.chart-label{fill:#706c63;font-size:11px}.trend-line{fill:none;stroke-width:3;vector-effect:non-scaling-stroke}.run-dot{stroke:var(--panel);stroke-width:2}
+svg{width:100%;height:auto;overflow:visible}.axis{stroke:var(--line);stroke-width:1}.chart-label{fill:var(--muted);font-size:11px}.trend-line{fill:none;stroke-width:3;vector-effect:non-scaling-stroke}.run-dot{stroke:var(--panel);stroke-width:2}
 .wiki{padding:0}.wikihead,.graphhead{display:flex;justify-content:space-between;align-items:end;gap:18px;padding:20px;border-bottom:1px solid var(--line)}input,select,button{font:inherit}.wikihead input,.graphhead input,.graphhead select{padding:9px;border:1px solid currentColor;background:transparent}
-.wikilayout{display:grid;grid-template-columns:270px 1fr;min-height:620px}.wikinav{background:#eee8dc;border-right:1px solid var(--line);max-height:700px;overflow:auto;padding:10px}.wikinav button{display:block;width:100%;padding:10px 7px;border:0;border-bottom:1px solid #d2cabb;background:transparent;text-align:left;cursor:pointer}.wikinav button.active,.wikinav button:hover{background:var(--panel)}.wikinav small{display:block;color:var(--muted);text-transform:uppercase}
-.wikipage{padding:clamp(22px,4vw,54px);max-height:700px;overflow:auto}.wikipage h3{font:700 clamp(30px,5vw,58px)/1 Georgia,serif;margin:7px 0}.wikipage .lede{font:italic 19px Georgia,serif;color:var(--muted)}.links{display:flex;flex-wrap:wrap;gap:7px}.links button,.related button{border:1px solid var(--line);background:#f7f3e9;padding:9px;text-align:left;cursor:pointer}.related{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.related small{display:block;color:var(--muted);margin-top:4px}
-.graphpanel{padding:0;background:#17201f;color:#f3efe4}.graphlayout{display:grid;grid-template-columns:minmax(0,1fr) 220px}.stage{position:relative;overflow:hidden;background:radial-gradient(circle,#263330,#111817)}canvas{display:block;width:100%;height:360px;touch-action:none}.detail{padding:16px;border-left:1px solid #44504e}.detail h3{font:700 23px Georgia,serif}.detail p{color:#bac4c1}
-.opportunity{display:grid;grid-template-columns:65px 1fr 220px;gap:16px;padding:17px 0;border-bottom:1px solid var(--line)}.rank{font:700 38px Georgia,serif;color:#e4572e}.score{font:700 31px Georgia,serif}.tag{display:inline-block;border:1px solid;padding:3px 6px;font-size:9px;text-transform:uppercase;margin-right:5px}
-.candidate{display:grid;grid-template-columns:65px 1fr 220px;gap:16px;padding:17px 0;border-bottom:1px solid var(--line)}.candidate .rank{font:700 38px Georgia,serif;color:#1d6f75}.candidate .meta{font-size:12px;color:var(--muted);margin-top:6px}.candidate h3{margin:0 0 6px;font:700 22px Georgia,serif}.candidate p{margin:4px 0}
-table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:9px;border-bottom:1px solid #d9d2c4;text-align:left}a{color:inherit;font-weight:700}
+.wikilayout{display:grid;grid-template-columns:270px 1fr;min-height:620px}.wikinav{background:var(--panel);border-right:1px solid var(--line);max-height:700px;overflow:auto;padding:10px}.wikinav button{display:block;width:100%;padding:10px 7px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;color:inherit}.wikinav button.active,.wikinav button:hover{background:var(--paper)}.wikinav small{display:block;color:var(--muted);text-transform:uppercase}
+.wikipage{padding:clamp(22px,4vw,54px);max-height:700px;overflow:auto}.wikipage h3{font:700 clamp(30px,5vw,58px)/1 var(--font-display);margin:7px 0}.wikipage .lede{font:italic 19px var(--font-display);color:var(--muted)}.links{display:flex;flex-wrap:wrap;gap:7px}.links button,.related button{border:1px solid var(--line);background:var(--paper);padding:9px;text-align:left;cursor:pointer;color:inherit}.related{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.related small{display:block;color:var(--muted);margin-top:4px}
+.graphpanel{padding:0;background:#17201f;color:#f3efe4}.graphlayout{display:grid;grid-template-columns:minmax(0,1fr) 220px}.stage{position:relative;overflow:hidden;background:radial-gradient(circle,#263330,#111817)}canvas{display:block;width:100%;height:360px;touch-action:none}.detail{padding:16px;border-left:1px solid #44504e}.detail h3{font:700 23px var(--font-display)}.detail p{color:#bac4c1}
+.opportunity{display:grid;grid-template-columns:65px 1fr 220px;gap:16px;padding:17px 0;border-bottom:1px solid var(--line)}.rank{font:700 38px var(--font-display);color:var(--accent)}.score{font:700 31px var(--font-display)}.tag{display:inline-block;border:1px solid;padding:3px 6px;font-size:9px;text-transform:uppercase;margin-right:5px}
+.candidate{display:grid;grid-template-columns:65px 1fr 220px;gap:16px;padding:17px 0;border-bottom:1px solid var(--line)}.candidate .rank{font:700 38px var(--font-display);color:var(--accent2)}.candidate .meta{font-size:12px;color:var(--muted);margin-top:6px}.candidate h3{margin:0 0 6px;font:700 22px var(--font-display)}.candidate p{margin:4px 0}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left}a{color:inherit;font-weight:700}
 @media(max-width:850px){.grid,.framing{grid-template-columns:1fr}.wide{grid-column:auto}.metrics{grid-template-columns:1fr 1fr}.wikilayout,.graphlayout{grid-template-columns:1fr}.wikinav{max-height:220px;border-right:0;border-bottom:1px solid var(--line)}.detail{border-left:0}.opportunity,.candidate{grid-template-columns:1fr}.related{grid-template-columns:1fr}}
 </style></head><body><main>
 <header><div class="eyebrow">AI Topic Scout · Living research intelligence</div><h1 id="title"></h1><p class="subtitle" id="goal"></p></header>
@@ -344,8 +396,11 @@ def main() -> int:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     write_json(DATA_DIR / "dashboard.json", payload)
     embedded = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).replace("</", "<\\/")
+    theme_css = root_css(resolve_theme(payload["topic"]))
     DASHBOARD_PATH.write_text(
-        HTML.replace("__TITLE__", payload["topic"]["topic"]).replace("__DATA__", embedded),
+        HTML.replace("__ROOT__", theme_css)
+        .replace("__TITLE__", payload["topic"]["topic"])
+        .replace("__DATA__", embedded),
         encoding="utf-8",
     )
     print(
