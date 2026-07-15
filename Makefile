@@ -15,6 +15,7 @@ help:
 	"  make plan       Print the generated multi-agent task plan" \
 	"  python3 scripts/orchestrate.py emit --mode copilot|copilot-cli|microsoft-scouting" \
 	"  make opportunities-check  Validate LLM opportunity JSON" \
+	"  make eval       Compare the cheap deterministic metric vs the LLM judge" \
 	"  make test       Run unit tests"
 
 init:
@@ -50,6 +51,9 @@ plan:
 
 opportunities-check:
 	$(PYTHON) scripts/validate_opportunities.py
+
+eval:
+	$(PYTHON) scripts/eval_metric.py $(if $(INPUT),--input "$(INPUT)",) $(if $(REPORT),--report "$(REPORT)",)
 
 test:
 	$(PYTHON) -m unittest discover -s tests

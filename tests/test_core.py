@@ -14,6 +14,13 @@ from build_corpus import classify
 from build_dashboard import DEFAULT_THEME, graph_data, resolve_theme, root_css, wiki_data
 from costs import usage_cost, zero_cost
 from judging import DEFAULT_JUDGING, aggregate, recency_weight, resolve_judging
+from eval_metric import (
+    evaluate as eval_metrics,
+    precision_at_k,
+    roc_auc,
+    routing_analysis,
+    spearman,
+)
 from init_topic import build_queries, parse_years, slugify
 from intent_refiner import refine_intent, refine_intent_codex
 from paper_graph import Candidate, relevance
@@ -68,6 +75,49 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(graph["nodes"]), 2)
         self.assertGreaterEqual(wiki["page_count"], 6)
         self.assertIn("overview", {page["id"] for page in wiki["pages"]})
+
+    def test_eval_metric_rank_statistics(self):
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [1, 2, 3, 4]), 1.0)
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [4, 3, 2, 1]), -1.0)
+        # Positives ranked strictly above negatives -> AUC 1.0; reversed -> 0.0.
+        self.assertAlmostEqual(roc_auc([0.1, 0.2, 0.8, 0.9], [0, 0, 1, 1]), 1.0)
+        self.assertAlmostEqual(roc_auc([0.1, 0.2, 0.8, 0.9], [1, 1, 0, 0]), 0.0)
+        self.assertAlmostEqual(precision_at_k([0.9, 0.8, 0.1], [1, 1, 0], 2), 1.0)
+
+    def test_eval_metric_routing_retains_recall_and_saves_calls(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": []}
+        papers = [
+            {"id": "a", "title": "Proof search method", "abstract": "formal proof search",
+             "topics": [], "citation_count": 5, "year": 2025, "relevance_score": 9.0},
+            {"id": "b", "title": "Neural proof search", "abstract": "proof search benchmark",
+             "topics": [], "citation_count": 2, "year": 2024, "relevance_score": 8.0},
+        ] + [
+            {"id": f"n{i}", "title": "Cooking recipe", "abstract": "how to bake bread",
+             "topics": [], "citation_count": 0, "year": 2020, "relevance_score": 0.0}
+            for i in range(8)
+        ]
+        route = routing_analysis(papers, config, "current")
+        # All 8 off-topic papers auto-dropped; both relevant papers survive to the LLM.
+        self.assertEqual(route["auto_dropped"], 8)
+        self.assertEqual(route["llm_calls"], 2)
+        self.assertEqual(route["recall_retained"], 1.0)
+        self.assertGreater(route["token_saving"], 0.5)
+
+    def test_eval_metric_evaluate_covers_all_scorers(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": [],
+                  "search_queries": ["proof search benchmark"], "taxonomy": ["benchmarks"]}
+        papers = [
+            {"id": "a", "title": "Proof search", "abstract": "formal proof search method",
+             "topics": ["proof"], "citation_count": 5, "year": 2025, "relevance_score": 9.0},
+            {"id": "n", "title": "Cooking", "abstract": "bread recipe",
+             "topics": [], "citation_count": 0, "year": 2020, "relevance_score": 0.0},
+        ]
+        summary = eval_metrics(papers, config)
+        self.assertEqual(summary["n"], 2)
+        for name in ("current", "tfidf_cosine", "bm25", "hybrid"):
+            self.assertIn(name, summary["metrics"])
+            self.assertIn("auc", summary["metrics"][name])
+        self.assertEqual(summary["routing"]["recall_retained"], 1.0)
 
     def test_resolve_judging_merges_and_normalizes_weights(self):
         judging = resolve_judging({"judging": {"weights": {"topical_fit": 1.0}}})

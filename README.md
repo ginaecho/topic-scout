@@ -107,6 +107,23 @@ Tune any of it in `topic.json` (all optional, sensible defaults):
 
 Weights are normalized automatically; `accept_hi`/`accept_lo` set the band; `min_confidence` is how much the two signals must agree to auto-accept. Every candidate in `data/candidates.json` carries its `rubric`, `relevance_score`, `relevance_confidence`, and `relevance_verdict` for inspection.
 
+### Cheap metric vs. the LLM judge — cutting tokens ~90%
+
+LLM judging costs tokens, so the goal is to lean on the **free deterministic metric** and call the LLM as little as possible without losing quality. `make eval` measures exactly how well the cheap metric tracks the LLM judge (treating the LLM's score as ground truth) on any labeled `candidates.json`, using rank-based metrics (Spearman, ROC-AUC, precision@K, NDCG, top-K overlap):
+
+```bash
+make eval                                   # bundled 540-paper example
+make eval REPORT=reports/metric_eval.md     # write a findings report
+python3 scripts/eval_metric.py --input data/candidates.json
+```
+
+On the bundled 540-paper corpus, two findings stand out (see [`docs/metric-vs-llm-eval.md`](docs/metric-vs-llm-eval.md)):
+
+- **The cheap metric already agrees with the LLM on what to *drop*.** Its "clearly off-topic" bucket held **485 of 540 candidates and 0 of the 8 relevant papers** — so auto-dropping it before the LLM runs saves **~90% of LLM calls with 100% of relevant papers retained**. A higher-AUC hybrid gate pushes that to **~94%**. This is the token lever: the LLM only judges the ambiguous survivors, not the obvious mass.
+- **No single cheap metric matches the LLM's *fine* ranking** (7 vs 10 among relevant papers) — that still needs the model. Exact include-phrase matching is high-precision but coarse (few distinct values); TF-IDF/BM25 add resolution but rank noise; naive token-coverage is *worse than random* (it rewards topically-adjacent-but-wrong papers — you must IDF-weight).
+
+**Takeaway baked into the design:** use the cheap metric as a high-recall prefilter/gate to eliminate the obvious, and spend LLM tokens only on the uncertainty band. Because the right weights are corpus-dependent, `make eval` is meant to be **re-run per topic** to calibrate — the harness is the deliverable, not any single number.
+
 ---
 
 ## 🎨 The house style (what ships for free)
