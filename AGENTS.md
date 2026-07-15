@@ -25,7 +25,8 @@ Treat the repo as a **workspace generator first, research workspace second**. If
 
 ```bash
 make init            # refine intent → topic.json + agents/ + skills/ + TOPIC_AGENTS.md
-make scout           # OpenAlex + LLM ranking → data/candidates.json
+make scout           # OpenAlex + cheap prefilter + LLM rubric ranking → data/candidates.json
+make eval            # compare the cheap deterministic metric vs the LLM judge
 make review          # print candidate review queue
 python3 scripts/accept_candidates.py <id>...   # accept into corpus
 make corpus          # notes + reports/research_report.md

@@ -11,12 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from build_corpus import classify
-from build_dashboard import graph_data, wiki_data
+from build_dashboard import DEFAULT_THEME, graph_data, resolve_theme, root_css, wiki_data
 from costs import usage_cost, zero_cost
+from judging import DEFAULT_JUDGING, aggregate, recency_weight, resolve_judging
+from eval_metric import (
+    evaluate as eval_metrics,
+    precision_at_k,
+    roc_auc,
+    routing_analysis,
+    spearman,
+)
 from init_topic import build_queries, parse_years, slugify
 from intent_refiner import refine_intent, refine_intent_codex
 from paper_graph import Candidate, relevance
 import scout as scout_module
+from scout import select_for_llm
 import analyze_research_gaps as gaps_module
 import orchestrate as orchestrate_module
 from scout_llm import score_candidates_api, score_candidates_codex
@@ -67,6 +76,342 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(graph["nodes"]), 2)
         self.assertGreaterEqual(wiki["page_count"], 6)
         self.assertIn("overview", {page["id"] for page in wiki["pages"]})
+
+    def test_prefilter_gate_splits_pool_and_dropped(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": []}
+        # `current` recomputes the heuristic from text, so on-topic abstracts
+        # score > 0 and off-topic ones score 0.
+        cands = [
+            {"id": "a", "title": "Proof search A", "abstract": "formal proof search method", "topics": []},
+            {"id": "b", "title": "Proof search B", "abstract": "proof search benchmark", "topics": []},
+            {"id": "c", "title": "Cooking", "abstract": "bread recipe", "topics": []},
+            {"id": "d", "title": "Gardening", "abstract": "plant tomatoes", "topics": []},
+        ]
+        prefilter = {"enabled": True, "scorer": "current", "threshold": 0.0, "keep_min": 1}
+        pool, dropped, _ = select_for_llm(cands, config, prefilter, limit=10)
+        self.assertEqual({c["id"] for c in pool}, {"a", "b"})
+        self.assertEqual({c["id"] for c in dropped}, {"c", "d"})
+        # Disabled gate sends everything (up to the limit), nothing dropped.
+        off = select_for_llm(cands, config, {"enabled": False}, limit=10)
+        self.assertEqual(len(off[0]), 4)
+        self.assertEqual(off[1], [])
+
+    def test_scout_prefilter_reduces_llm_pool(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            papers_path = root / "data" / "papers.json"
+            candidates_path = root / "data" / "candidates.json"
+            papers_path.write_text(json.dumps({"papers": [], "scout_runs": []}), encoding="utf-8")
+            candidates_path.write_text(json.dumps({"candidates": []}), encoding="utf-8")
+            fake_topic = {
+                "topic": "AI theorem proving", "goal": "g", "audience": "a",
+                "include": ["proof search"], "exclude": [], "years": {"from": 2023, "to": 2026},
+                "taxonomy": ["proof search"], "evidence_types": ["methods"],
+                "approval_required": False, "scout_provider": "api",
+            }
+            # 6 on-topic (heuristic > 0) + 6 off-topic (heuristic 0); keep_min=5 so
+            # the 6 survivors clear the floor and the 6 zeros are truly dropped.
+            cands = []
+            for i in range(6):
+                cands.append({"id": f"y{i}", "title": "Proof search", "year": 2025,
+                              "url": "u", "doi": None, "abstract": "proof search method",
+                              "citation_count": 3, "topics": ["proof search"],
+                              "discovered_via": ["q"], "relevance_score": 2.6,
+                              "relevance_reason": "heuristic"})
+            for i in range(6):
+                cands.append({"id": f"n{i}", "title": "Cooking", "year": 2020,
+                              "url": "u", "doi": None, "abstract": "bread recipe",
+                              "citation_count": 0, "topics": [], "discovered_via": ["q"],
+                              "relevance_score": 0.0, "relevance_reason": "heuristic"})
+            fake_result = {"topic": "AI theorem proving", "queries": ["q"], "edges": [], "candidates": cands}
+            seen = {}
+
+            def fake_score(config, candidates, **kwargs):
+                seen["ids"] = [c["id"] for c in candidates]
+                return ({c["id"]: {"topical_fit": 0.9, "evidence_match": 0.9, "rigor": 0.8,
+                                   "exclusion_hit": False, "relevance_reason": "fit"}
+                         for c in candidates}, zero_cost())
+
+            def fake_load_json(path, default):
+                return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
+
+            def fake_write_json(path, payload):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+            with patch.object(scout_module, "discover", return_value=fake_result):
+                with patch.object(scout_module, "load_topic", return_value=fake_topic):
+                    with patch.object(scout_module, "score_candidates", side_effect=fake_score):
+                        with patch.object(scout_module, "load_json", side_effect=fake_load_json):
+                            with patch.object(scout_module, "write_json", side_effect=fake_write_json):
+                                with patch.object(scout_module, "PAPERS_PATH", papers_path):
+                                    with patch.object(scout_module, "CANDIDATES_PATH", candidates_path):
+                                        with patch.object(sys, "argv", ["scout.py"]):
+                                            self.assertEqual(scout_module.main(), 0)
+
+            # The LLM only saw the 6 on-topic candidates; the 6 zeros were prefiltered.
+            self.assertEqual(sorted(seen["ids"]), sorted(f"y{i}" for i in range(6)))
+            queue = json.loads(candidates_path.read_text())
+            verdicts = {c["id"]: c.get("relevance_verdict") for c in queue["candidates"]}
+            self.assertTrue(all(verdicts[f"n{i}"] == "prefiltered" for i in range(6)))
+            # The judged on-topic candidates carry a real verdict, not "prefiltered".
+            self.assertTrue(all(verdicts[f"y{i}"] in {"accept", "uncertain", "reject"} for i in range(6)))
+            self.assertEqual(json.loads(papers_path.read_text())["scout_runs"][0]["prefiltered_count"], 6)
+
+    def test_eval_metric_rank_statistics(self):
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [1, 2, 3, 4]), 1.0)
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [4, 3, 2, 1]), -1.0)
+        # Positives ranked strictly above negatives -> AUC 1.0; reversed -> 0.0.
+        self.assertAlmostEqual(roc_auc([0.1, 0.2, 0.8, 0.9], [0, 0, 1, 1]), 1.0)
+        self.assertAlmostEqual(roc_auc([0.1, 0.2, 0.8, 0.9], [1, 1, 0, 0]), 0.0)
+        self.assertAlmostEqual(precision_at_k([0.9, 0.8, 0.1], [1, 1, 0], 2), 1.0)
+
+    def test_eval_metric_routing_retains_recall_and_saves_calls(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": []}
+        papers = [
+            {"id": "a", "title": "Proof search method", "abstract": "formal proof search",
+             "topics": [], "citation_count": 5, "year": 2025, "relevance_score": 9.0},
+            {"id": "b", "title": "Neural proof search", "abstract": "proof search benchmark",
+             "topics": [], "citation_count": 2, "year": 2024, "relevance_score": 8.0},
+        ] + [
+            {"id": f"n{i}", "title": "Cooking recipe", "abstract": "how to bake bread",
+             "topics": [], "citation_count": 0, "year": 2020, "relevance_score": 0.0}
+            for i in range(8)
+        ]
+        route = routing_analysis(papers, config, "current")
+        # All 8 off-topic papers auto-dropped; both relevant papers survive to the LLM.
+        self.assertEqual(route["auto_dropped"], 8)
+        self.assertEqual(route["llm_calls"], 2)
+        self.assertEqual(route["recall_retained"], 1.0)
+        self.assertGreater(route["token_saving"], 0.5)
+
+    def test_eval_metric_evaluate_covers_all_scorers(self):
+        config = {"topic": "proof search", "include": ["proof search"], "exclude": [],
+                  "search_queries": ["proof search benchmark"], "taxonomy": ["benchmarks"]}
+        papers = [
+            {"id": "a", "title": "Proof search", "abstract": "formal proof search method",
+             "topics": ["proof"], "citation_count": 5, "year": 2025, "relevance_score": 9.0},
+            {"id": "n", "title": "Cooking", "abstract": "bread recipe",
+             "topics": [], "citation_count": 0, "year": 2020, "relevance_score": 0.0},
+        ]
+        summary = eval_metrics(papers, config)
+        self.assertEqual(summary["n"], 2)
+        for name in ("current", "tfidf_cosine", "bm25", "hybrid"):
+            self.assertIn(name, summary["metrics"])
+            self.assertIn("auc", summary["metrics"][name])
+        self.assertEqual(summary["routing"]["recall_retained"], 1.0)
+
+    def test_resolve_judging_merges_and_normalizes_weights(self):
+        judging = resolve_judging({"judging": {"weights": {"topical_fit": 1.0}}})
+        # Weights always normalize to sum 1 after merging over defaults.
+        self.assertAlmostEqual(sum(judging["weights"].values()), 1.0)
+        self.assertGreater(judging["weights"]["topical_fit"], judging["weights"]["evidence_match"])
+        # Empty/absent block reproduces the defaults.
+        self.assertEqual(resolve_judging({})["weights"], resolve_judging({"judging": {}})["weights"])
+        # A malformed (all-zero) weight set falls back to defaults.
+        fallback = resolve_judging({"judging": {"weights": {"topical_fit": 0, "evidence_match": 0, "rigor": 0}}})
+        self.assertAlmostEqual(fallback["weights"]["topical_fit"], DEFAULT_JUDGING["weights"]["topical_fit"])
+        # A CLI accept-score override wins and keeps the band coherent.
+        overridden = resolve_judging({"judging": {"accept_lo": 9.0}}, accept_hi=6.0)
+        self.assertEqual(overridden["accept_hi"], 6.0)
+        self.assertLessEqual(overridden["accept_lo"], overridden["accept_hi"])
+
+    def test_recency_weight_decays_gently_to_a_floor(self):
+        recency = DEFAULT_JUDGING["recency"]
+        self.assertEqual(recency_weight(2026, 2026, recency), 1.0)
+        self.assertAlmostEqual(recency_weight(2021, 2026, recency), 0.85)
+        # Far-past papers clamp at the floor; missing years get the neutral value.
+        self.assertEqual(recency_weight(1990, 2026, recency), recency["floor"])
+        self.assertEqual(recency_weight(None, 2026, recency), recency["unknown_year"])
+
+    def test_aggregate_produces_accept_reject_uncertain_and_veto(self):
+        judging = resolve_judging({})
+        # Strong rubric + agreeing heuristic -> accept.
+        strong = aggregate(
+            {"topical_fit": 1.0, "evidence_match": 1.0, "rigor": 1.0, "exclusion_hit": False},
+            judging, year=2026, reference_year=2026, heuristic_score=6.0,
+        )
+        self.assertEqual(strong["relevance_score"], 10.0)
+        self.assertEqual(strong["relevance_verdict"], "accept")
+        # High rubric but the cheap heuristic strongly disagrees -> uncertain.
+        disputed = aggregate(
+            {"topical_fit": 0.9, "evidence_match": 0.9, "rigor": 0.9, "exclusion_hit": False},
+            judging, year=2026, reference_year=2026, heuristic_score=0.0,
+        )
+        self.assertLess(disputed["relevance_confidence"], judging["min_confidence"])
+        self.assertEqual(disputed["relevance_verdict"], "uncertain")
+        # Low rubric -> reject.
+        weak = aggregate(
+            {"topical_fit": 0.2, "evidence_match": 0.2, "rigor": 0.2, "exclusion_hit": False},
+            judging, year=2026, reference_year=2026, heuristic_score=1.2,
+        )
+        self.assertEqual(weak["relevance_verdict"], "reject")
+        # Excluded scope is a hard veto regardless of the other scores.
+        vetoed = aggregate(
+            {"topical_fit": 1.0, "evidence_match": 1.0, "rigor": 1.0, "exclusion_hit": True},
+            judging, year=2026, reference_year=2026, heuristic_score=6.0,
+        )
+        self.assertEqual(vetoed["relevance_verdict"], "reject")
+        self.assertEqual(vetoed["relevance_score"], 0.0)
+
+    def test_scout_uses_rubric_verdict_band_for_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            papers_path = root / "data" / "papers.json"
+            candidates_path = root / "data" / "candidates.json"
+            papers_path.write_text(json.dumps({"papers": [], "scout_runs": []}), encoding="utf-8")
+            candidates_path.write_text(json.dumps({"candidates": []}), encoding="utf-8")
+
+            fake_topic = {
+                "topic": "AI theorem proving",
+                "goal": "Track proof systems",
+                "audience": "researchers",
+                "include": ["proof search"],
+                "exclude": [],
+                "years": {"from": 2023, "to": 2026},
+                "taxonomy": ["proof search", "verification"],
+                "evidence_types": ["methods"],
+                "approval_required": False,
+                "scout_provider": "api",
+            }
+            fake_result = {
+                "topic": "AI theorem proving",
+                "queries": ["q"],
+                "edges": [],
+                "candidates": [
+                    {  # heuristic agrees with a strong rubric -> accept
+                        "id": "openalex:1", "title": "Accept Me", "year": 2025,
+                        "url": "https://a", "doi": None, "abstract": "proof search method",
+                        "citation_count": 12, "topics": ["proof search"],
+                        "discovered_via": ["query:q"], "relevance_score": 6.0,
+                        "relevance_reason": "heuristic",
+                    },
+                    {  # strong rubric but heuristic disagrees -> uncertain, not accepted
+                        "id": "openalex:2", "title": "Unsure Me", "year": 2025,
+                        "url": "https://b", "doi": None, "abstract": "proof search benchmark",
+                        "citation_count": 3, "topics": ["proof search"],
+                        "discovered_via": ["query:q"], "relevance_score": 0.0,
+                        "relevance_reason": "heuristic",
+                    },
+                ],
+            }
+            rubrics = {
+                "openalex:1": {"topical_fit": 1.0, "evidence_match": 1.0, "rigor": 0.9,
+                               "exclusion_hit": False, "relevance_reason": "clear fit"},
+                "openalex:2": {"topical_fit": 0.9, "evidence_match": 0.9, "rigor": 0.9,
+                               "exclusion_hit": False, "relevance_reason": "looks aligned"},
+            }
+
+            def fake_load_json(path, default):
+                if not path.exists():
+                    return default
+                return json.loads(path.read_text(encoding="utf-8"))
+
+            def fake_write_json(path, payload):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+            with patch.object(scout_module, "discover", return_value=fake_result):
+                with patch.object(scout_module, "load_topic", return_value=fake_topic):
+                    with patch.object(scout_module, "score_candidates", return_value=(rubrics, zero_cost())):
+                        with patch.object(scout_module, "load_json", side_effect=fake_load_json):
+                            with patch.object(scout_module, "write_json", side_effect=fake_write_json):
+                                with patch.object(scout_module, "PAPERS_PATH", papers_path):
+                                    with patch.object(scout_module, "CANDIDATES_PATH", candidates_path):
+                                        with patch.object(sys, "argv", ["scout.py"]):
+                                            self.assertEqual(scout_module.main(), 0)
+
+            corpus = json.loads(papers_path.read_text())
+            queue = json.loads(candidates_path.read_text())
+            verdicts = {c["id"]: c["relevance_verdict"] for c in queue["candidates"]}
+            # Only the agreed-strong candidate is auto-accepted.
+            self.assertEqual([p["id"] for p in corpus["papers"]], ["openalex:1"])
+            self.assertEqual(verdicts["openalex:1"], "accept")
+            self.assertEqual(verdicts["openalex:2"], "uncertain")
+            # The judge's rubric is preserved on the candidate for auditing.
+            by_id = {c["id"]: c for c in queue["candidates"]}
+            self.assertIn("rubric", by_id["openalex:2"])
+            self.assertEqual(by_id["openalex:1"]["relevance_reason"], "clear fit")
+
+    def test_resolve_theme_merges_partial_override_over_defaults(self):
+        theme = resolve_theme(
+            {
+                "theme": {
+                    "palette": {"accent": "#ff2e88"},
+                    "fonts": {"body": "Inter, sans-serif"},
+                    "category_colors": ["#ff2e88", "#22d3ee"],
+                }
+            }
+        )
+        # Overridden values win.
+        self.assertEqual(theme["palette"]["accent"], "#ff2e88")
+        self.assertEqual(theme["fonts"]["body"], "Inter, sans-serif")
+        self.assertEqual(theme["category_colors"], ["#ff2e88", "#22d3ee"])
+        # Unspecified values fall back to the defaults.
+        self.assertEqual(theme["palette"]["ink"], DEFAULT_THEME["palette"]["ink"])
+        self.assertEqual(theme["fonts"]["display"], DEFAULT_THEME["fonts"]["display"])
+
+    def test_resolve_theme_defaults_when_absent_or_malformed(self):
+        self.assertEqual(resolve_theme({}), resolve_theme({"theme": {}}))
+        # A malformed category_colors value silently falls back.
+        theme = resolve_theme({"theme": {"category_colors": "not-a-list"}})
+        self.assertEqual(theme["category_colors"], DEFAULT_THEME["category_colors"])
+        root = root_css(theme)
+        self.assertTrue(root.startswith(":root{"))
+        self.assertIn("--accent:", root)
+        self.assertIn("--font-display:", root)
+
+    def test_dashboard_applies_theme_palette_and_fonts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            (root / "reports").mkdir(parents=True, exist_ok=True)
+            (root / "topic.json").write_text(
+                json.dumps(
+                    {
+                        "topic": "Themed Topic",
+                        "goal": "Verify theming",
+                        "audience": "devs",
+                        "taxonomy": ["alpha", "beta"],
+                        "include": ["x"],
+                        "exclude": [],
+                        "years": {"from": 2023, "to": 2026},
+                        "theme": {
+                            "palette": {"ink": "#0b1021", "accent": "#ff2e88"},
+                            "fonts": {"body": "Inter, system-ui, sans-serif"},
+                            "category_colors": ["#ff2e88", "#22d3ee"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "data" / "papers.json").write_text(
+                json.dumps({"papers": [], "scout_runs": []}), encoding="utf-8"
+            )
+            (root / "data" / "candidates.json").write_text(
+                json.dumps({"candidates": [], "generated_at": None, "cost": {}}),
+                encoding="utf-8",
+            )
+            env = dict(os.environ, TOPIC_SCOUT_ROOT=directory)
+            subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_dashboard.py")],
+                check=True,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            html = (root / "topic-dashboard.html").read_text(encoding="utf-8")
+            self.assertIn("--ink:#0b1021", html)
+            self.assertIn("--accent:#ff2e88", html)
+            self.assertIn("--font-body:Inter, system-ui, sans-serif", html)
+            # Unspecified palette entries keep their defaults.
+            self.assertIn(f"--muted:{DEFAULT_THEME['palette']['muted']}", html)
+            # Category colors flow into the embedded payload.
+            payload = json.loads((root / "data" / "dashboard.json").read_text())
+            self.assertEqual(payload["categories"][0]["color"], "#ff2e88")
+            self.assertEqual(payload["categories"][1]["color"], "#22d3ee")
 
     def test_noninteractive_initialization_generates_agent_workspace(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -587,7 +932,10 @@ class CoreTests(unittest.TestCase):
                                     "candidates": [
                                         {
                                             "id": "openalex:1",
-                                            "relevance_score": 8.2,
+                                            "topical_fit": 0.9,
+                                            "evidence_match": 0.8,
+                                            "rigor": 0.7,
+                                            "exclusion_hit": False,
                                             "relevance_reason": "Matches proof search and verification scope.",
                                         }
                                     ]
@@ -633,7 +981,9 @@ class CoreTests(unittest.TestCase):
             model="test-model",
             urlopen=fake_urlopen,
         )
-        self.assertEqual(scores["openalex:1"]["relevance_score"], 8.2)
+        self.assertEqual(scores["openalex:1"]["topical_fit"], 0.9)
+        self.assertEqual(scores["openalex:1"]["evidence_match"], 0.8)
+        self.assertFalse(scores["openalex:1"]["exclusion_hit"])
         self.assertEqual(cost["token_count"], 154)
         self.assertEqual(cost["model"], "test-model")
 
@@ -649,7 +999,10 @@ class CoreTests(unittest.TestCase):
                         "candidates": [
                             {
                                 "id": "openalex:1",
-                                "relevance_score": 7.5,
+                                "topical_fit": 0.8,
+                                "evidence_match": 0.7,
+                                "rigor": 0.6,
+                                "exclusion_hit": False,
                                 "relevance_reason": "Highly aligned with formal verification scope.",
                             }
                         ]
@@ -684,7 +1037,8 @@ class CoreTests(unittest.TestCase):
                 run=fake_run,
             )
         self.assertIn("--json", captured["command"])
-        self.assertEqual(scores["openalex:1"]["relevance_score"], 7.5)
+        self.assertEqual(scores["openalex:1"]["topical_fit"], 0.8)
+        self.assertEqual(scores["openalex:1"]["rigor"], 0.6)
         self.assertEqual(cost["token_count"], 230)
 
     def test_gap_analysis_skips_when_no_accepted_papers(self):
