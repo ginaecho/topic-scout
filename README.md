@@ -15,7 +15,9 @@ Describe what you want to track ("AI in hiring", "AI for theorem proving", "agen
 
 ## 🤔 Why not just use Microsoft Scout (or another scouting tool)?
 
-Fair question — and the honest answer is that general-purpose scouting assistants are great at *finding* things. Topic Scout is built for a different job: **producing a consistent, ownable research product over time.** The difference matters once you scout the same topic more than once.
+Fair question — but it's partly a name collision. [**Microsoft Scout**](https://www.microsoft.com/en-us/microsoft-365/blog/2026/06/02/introducing-microsoft-scout-your-always-on-personal-agent/) (launched June 2026, built on OpenClaw — the same framework EvaPaper runs on) is an *always-on personal **work** agent* for Microsoft 365: it schedules meetings, preps materials, tracks deliverables, and flags stalled decisions across Teams, Outlook, and SharePoint. It is **not** a research-paper tool — it has no fixed research output format, no persistent topic corpus, and no per-topic analytics. Ask it to "scout papers" and it delegates to a general-purpose research sub-agent that hands back ad-hoc output.
+
+That's the gap Topic Scout fills. It's built for one job Microsoft Scout (and general chat assistants) don't do: **producing a consistent, ownable research product over time.** The difference matters once you scout the same topic more than once.
 
 **1. You get a house style for free — no tokens spent on formatting.**
 Ask a general assistant to "scout papers and make a report," and *you* pay (in tokens, prompt engineering, and inconsistency) to specify the HTML layout, the Markdown structure, the summary format — every single run. Topic Scout ships a designed template. Every dashboard, every paper note, every synthesis report comes out in the same editorial style (warm broadsheet palette, serif display headings, an interactive wiki, a citation graph, a ranked opportunities column). You spend your tokens on **research judgment, not CSS.**
@@ -32,16 +34,17 @@ Not a closed hosted product — the same `make` command surface drives **Claude 
 **5. It's opinionated about research hygiene.**
 Discovery is not acceptance. Every paper keeps a stable identifier and source URL. Every gap states its evidence, inference, and uncertainty. Nothing gets fabricated. (See the hard rules in [AGENTS.md](AGENTS.md).)
 
-|  | **AI Topic Scout** | General scouting assistants |
+|  | **AI Topic Scout** | Microsoft Scout / general work agents |
 |---|---|---|
-| Output format | **Fixed house style**, zero setup | You re-specify it every run |
-| Cross-run analytics | **Comparable** (same instrument) | Varies per prompt |
-| Your corpus | **Files in your git repo** | Chat / hosted state |
-| Runtime | **Any agent** (Claude/Codex/Copilot/…) | Vendor's |
+| Purpose | **Research-corpus engine** | General work autopilot (M365) |
+| Output format | **Fixed house style**, zero setup | Ad-hoc, re-specified every run |
+| Cross-run analytics | **Comparable** (same instrument) | None / varies per prompt |
+| Persistent corpus | **Files in your git repo** | No research corpus |
+| Runtime | **Any agent** (Claude/Codex/Copilot/…) | Vendor-hosted |
 | Cost of formatting | **Free** (template) | Paid in tokens, every time |
-| Self-host / fork | ✅ MIT | ❌ / limited |
+| Self-host / fork | ✅ MIT | ❌ cloud-only |
 
-**Bottom line:** use a general scout to *explore*; use Topic Scout when you want a **consistent, analyzable, ownable research workspace that maintains itself** — and looks the same, good, every time.
+**Bottom line:** use Microsoft Scout (or a chat assistant) to run your *workday*; use Topic Scout when you want a **consistent, analyzable, ownable research workspace that maintains itself** — and looks the same, good, every time.
 
 ---
 
