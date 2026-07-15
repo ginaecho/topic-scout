@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from datetime import datetime, timezone
 
 from costs import zero_cost
+from judging import aggregate, resolve_judging
 from paper_graph import discover
 from scout_llm import ScoutModelError, score_candidates
 from workspace import CANDIDATES_PATH, PAPERS_PATH, load_json, load_topic, write_json
@@ -112,14 +113,36 @@ def main() -> int:
             )
         except ScoutModelError as exc:
             raise SystemExit(f"Scout scoring failed: {exc}")
+        judging = resolve_judging(config, accept_hi=args.accept_score)
+        reference_year = (config.get("years") or {}).get("to") or int(result["generated_at"][:4])
         for candidate in result["candidates"]:
-            candidate["heuristic_relevance_score"] = candidate.get("relevance_score", 0)
+            # Preserve the independent keyword heuristic before the judge's
+            # rubric overwrites the ranked score.
+            heuristic_score = candidate.get("relevance_score", 0)
+            candidate["heuristic_relevance_score"] = heuristic_score
             candidate["heuristic_relevance_reason"] = candidate.get("relevance_reason", "")
-            update = updates.get(candidate["id"])
-            if update:
-                candidate.update(update)
+            rubric = updates.get(candidate["id"])
+            if rubric:
+                verdict = aggregate(
+                    rubric,
+                    judging,
+                    year=candidate.get("year"),
+                    reference_year=reference_year,
+                    heuristic_score=heuristic_score,
+                )
+                candidate.update(verdict)
+                candidate["relevance_reason"] = rubric["relevance_reason"]
+                candidate["rubric"] = {
+                    key: rubric[key]
+                    for key in ("topical_fit", "evidence_match", "rigor", "exclusion_hit")
+                }
         result["candidates"].sort(
-            key=lambda item: (-item.get("relevance_score", 0), -item.get("citation_count", 0), -(item.get("year") or 0))
+            key=lambda item: (
+                -item.get("relevance_score", 0),
+                -item.get("relevance_confidence", 0),
+                -item.get("citation_count", 0),
+                -(item.get("year") or 0),
+            )
         )
         result["cost"] = usage
         result["scout_provider"] = provider
@@ -138,12 +161,20 @@ def main() -> int:
         "cost": result["cost"],
     }
     existing.setdefault("scout_runs", []).append(scout_run)
+    def _auto_acceptable(candidate: dict) -> bool:
+        if candidate["id"] in known or not candidate.get("abstract"):
+            return False
+        # When the judge produced a verdict, honor the accept/uncertain/reject
+        # band; the uncertainty band stays in the review queue for a human.
+        # Otherwise (offline/heuristic path) fall back to the raw threshold.
+        if "relevance_verdict" in candidate:
+            return candidate["relevance_verdict"] == "accept"
+        return candidate["relevance_score"] >= accept_score
+
     if not config["approval_required"] and accept_score is not None:
         accepted = [
             candidate for candidate in result["candidates"]
-            if candidate["id"] not in known
-            and candidate["relevance_score"] >= accept_score
-            and candidate["abstract"]
+            if _auto_acceptable(candidate)
         ]
         if accepted:
             for candidate in accepted:
@@ -168,12 +199,21 @@ def main() -> int:
     )
     if discovery_error:
         print(f"OpenAlex discovery failed; wrote an empty candidate queue. {discovery_error}")
+    uncertain = [
+        candidate for candidate in result["candidates"]
+        if candidate.get("relevance_verdict") == "uncertain" and candidate["id"] not in known
+    ]
     if config["approval_required"]:
         print(f"Review {CANDIDATES_PATH}; acceptance requires a librarian or human.")
     elif accepted:
-        print(f"Accepted {len(accepted)} candidates at score >= {accept_score}.")
+        print(f"Accepted {len(accepted)} candidates (verdict=accept, score >= {accept_score}).")
     elif not config["approval_required"]:
-        print(f"No candidates met the auto-accept threshold of {accept_score}.")
+        print(f"No candidates met the auto-accept bar (verdict=accept, score >= {accept_score}).")
+    if uncertain:
+        print(
+            f"{len(uncertain)} candidate(s) landed in the uncertainty band; "
+            f"review {CANDIDATES_PATH} for verdict=uncertain."
+        )
     print(
         f"Scout cost: {result['cost']['token_count']} tokens, "
         f"${result['cost']['money_cost_usd']:.2f} {result['cost']['currency']}."

@@ -35,6 +35,21 @@
     "LLM verifier guided proof generation",
     "neural theorem proving benchmark"
   ],
+  "judging": {
+    "weights": {
+      "topical_fit": 0.5,
+      "evidence_match": 0.3,
+      "rigor": 0.2
+    },
+    "recency": {
+      "decay_per_year": 0.03,
+      "floor": 0.75,
+      "unknown_year": 0.9
+    },
+    "accept_hi": 7.0,
+    "accept_lo": 4.0,
+    "min_confidence": 0.35
+  },
   "theme": {
     "palette": {
       "ink": "#17201f",

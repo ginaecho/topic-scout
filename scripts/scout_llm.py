@@ -25,10 +25,20 @@ SCOUT_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "minLength": 3},
-                    "relevance_score": {"type": "number", "minimum": 0, "maximum": 10},
+                    "topical_fit": {"type": "number", "minimum": 0, "maximum": 1},
+                    "evidence_match": {"type": "number", "minimum": 0, "maximum": 1},
+                    "rigor": {"type": "number", "minimum": 0, "maximum": 1},
+                    "exclusion_hit": {"type": "boolean"},
                     "relevance_reason": {"type": "string", "minLength": 5},
                 },
-                "required": ["id", "relevance_score", "relevance_reason"],
+                "required": [
+                    "id",
+                    "topical_fit",
+                    "evidence_match",
+                    "rigor",
+                    "exclusion_hit",
+                    "relevance_reason",
+                ],
                 "additionalProperties": False,
             },
         }
@@ -38,11 +48,18 @@ SCOUT_SCHEMA = {
 }
 
 SCOUT_INSTRUCTIONS = (
-    "You are a research scout reviewer. Score candidate papers against the provided research "
-    "contract. Use the candidate title, abstract, topics, and provenance only. Be conservative. "
-    "Prefer low scores when relevance is ambiguous. Penalize items that match excluded scope. "
-    "Return every provided candidate id exactly once with a relevance_score from 0 to 10 and a "
-    "short concrete reason grounded in the candidate text."
+    "You are a research scout reviewer. Judge each candidate paper against the provided research "
+    "contract on a rubric, using the candidate title, abstract, topics, provenance, and citation "
+    "count only. Score every candidate independently on its own merits; do not rank candidates "
+    "relative to each other. For each candidate return four judgments:\n"
+    "- topical_fit (0..1): how well the work matches the include scope and research question.\n"
+    "- evidence_match (0..1): whether it is the KIND of evidence the contract wants (see "
+    "evidence_types/taxonomy): methods, benchmarks, systems, surveys, etc.\n"
+    "- rigor (0..1): credibility signal from venue, methodology, reproducibility, and citations.\n"
+    "- exclusion_hit (boolean): true if the work falls within the contract's excluded scope.\n"
+    "Be conservative: prefer low scores when relevance is ambiguous, and set exclusion_hit=true "
+    "whenever excluded scope clearly applies. Return every provided candidate id exactly once "
+    "with a short, concrete reason grounded in the candidate text."
 )
 
 
@@ -51,6 +68,9 @@ class ScoutModelError(RuntimeError):
 
 
 def _candidate_payload(config: dict, candidates: list[dict]) -> str:
+    # The judge is deliberately blinded to the keyword heuristic score so the
+    # two relevance signals stay independent (their agreement is used later as
+    # a confidence signal). Only raw candidate evidence is passed in.
     compact = []
     for item in candidates:
         compact.append(
@@ -62,8 +82,6 @@ def _candidate_payload(config: dict, candidates: list[dict]) -> str:
                 "topics": item.get("topics", [])[:8],
                 "discovered_via": item.get("discovered_via", [])[:4],
                 "citation_count": item.get("citation_count", 0),
-                "heuristic_relevance_score": item.get("relevance_score", 0),
-                "heuristic_relevance_reason": item.get("relevance_reason", ""),
             }
         )
     return json.dumps(
@@ -73,11 +91,23 @@ def _candidate_payload(config: dict, candidates: list[dict]) -> str:
             "goal": config.get("goal"),
             "include": config.get("include", []),
             "exclude": config.get("exclude", []),
+            "evidence_types": config.get("evidence_types", []),
             "taxonomy": config.get("taxonomy", []),
             "candidates": compact,
         },
         ensure_ascii=False,
     )
+
+
+def _rubric_from_row(row: dict) -> dict:
+    """Extract the judged rubric from one structured-output row."""
+    return {
+        "topical_fit": float(row["topical_fit"]),
+        "evidence_match": float(row["evidence_match"]),
+        "rigor": float(row["rigor"]),
+        "exclusion_hit": bool(row["exclusion_hit"]),
+        "relevance_reason": row["relevance_reason"].strip(),
+    }
 
 
 def _usage_cost_from_responses(provider: str, model: str, body: dict) -> dict:
@@ -159,13 +189,7 @@ def score_candidates_api(
         parsed = json.loads(_output_text(body))
     except json.JSONDecodeError as exc:
         raise ScoutModelError("OpenAI scout scoring returned invalid structured JSON") from exc
-    mapping = {
-        row["id"]: {
-            "relevance_score": float(row["relevance_score"]),
-            "relevance_reason": row["relevance_reason"].strip(),
-        }
-        for row in parsed.get("candidates", [])
-    }
+    mapping = {row["id"]: _rubric_from_row(row) for row in parsed.get("candidates", [])}
     return mapping, _usage_cost_from_responses("api", selected_model, body)
 
 
@@ -243,13 +267,7 @@ def score_candidates_codex(
             continue
         if event.get("type") == "turn.completed":
             usage = event.get("usage") or {}
-    mapping = {
-        row["id"]: {
-            "relevance_score": float(row["relevance_score"]),
-            "relevance_reason": row["relevance_reason"].strip(),
-        }
-        for row in parsed.get("candidates", [])
-    }
+    mapping = {row["id"]: _rubric_from_row(row) for row in parsed.get("candidates", [])}
     selected_model = f"codex-cli:{model or 'configured-model'}"
     return mapping, usage_cost(
         provider="codex",

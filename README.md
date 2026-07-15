@@ -71,6 +71,44 @@ flowchart LR
 
 ---
 
+## ⚖️ How relevance is judged
+
+"Rank" is not a single opaque number from a model. The scout keeps **two independent signals** and combines them with transparent math you can tune:
+
+1. **Cheap keyword heuristic** (offline, from OpenAlex text) — a fast include/exclude filter.
+2. **LLM judge** — scores each candidate *independently* on a small rubric, and is **deliberately blinded to the heuristic score** so the two signals stay independent:
+   - `topical_fit` — matches the include scope / research question
+   - `evidence_match` — is it the *kind* of evidence the contract wants (`evidence_types`)?
+   - `rigor` — venue / methodology / citation credibility
+   - `exclusion_hit` — a hard veto when excluded scope applies
+
+Those rubric dimensions are combined **deterministically in code** (not by the model) into a 0–10 score, weighted by your `topic.json`, with a gentle recency decay. The model judges criteria; the math does the ranking — so every score is reproducible and auditable.
+
+**The verdict is a two-threshold band, not one cutoff:**
+
+| Condition | Verdict |
+|---|---|
+| `exclusion_hit` | **reject** (veto) |
+| score ≥ `accept_hi` **and** heuristic/LLM agree | **accept** (auto-curated when approval isn't required) |
+| score ≤ `accept_lo` | **reject** |
+| otherwise (mid-score, *or* the two signals disagree) | **uncertain** → stays in the review queue for a human |
+
+That uncertainty band is the key: the papers most likely to be misjudged — borderline scores, or where the keyword filter and the LLM disagree — are surfaced for review instead of being silently accepted or dropped.
+
+Tune any of it in `topic.json` (all optional, sensible defaults):
+
+```json
+"judging": {
+  "weights": { "topical_fit": 0.5, "evidence_match": 0.3, "rigor": 0.2 },
+  "recency": { "decay_per_year": 0.03, "floor": 0.75, "unknown_year": 0.9 },
+  "accept_hi": 7.0, "accept_lo": 4.0, "min_confidence": 0.35
+}
+```
+
+Weights are normalized automatically; `accept_hi`/`accept_lo` set the band; `min_confidence` is how much the two signals must agree to auto-accept. Every candidate in `data/candidates.json` carries its `rubric`, `relevance_score`, `relevance_confidence`, and `relevance_verdict` for inspection.
+
+---
+
 ## 🎨 The house style (what ships for free)
 
 The generated `topic-dashboard.html` is a single, dependency-free file styled as a **research broadsheet**:
